@@ -61,19 +61,22 @@ npm workspaces, Node 24+.
   - `src/contract.ts`: the API types (HANDOFF section 7, narrowed to the
     current scope, with marked additions). The frontend imports it with
     `import type` only.
-  - `src/statement.ts`: parses the CSV (Date, Description, Amount or
-    Debit/Credit, optional Balance) and turns it into facts with the rows they
-    rest on, plus blind spots. Messages it throws are shown to the applicant.
+  - `src/statement.ts`: parses the CSV (Date; Amount, signed or with a Type
+    column, or Debit/Credit; optional Description and Balance) and turns it
+    into facts with the rows they rest on, plus blind spots. Messages it throws
+    are shown to the applicant.
   - `src/fixtures.ts`: the one file with sample data. Sample statements are
     generated there as CSV and loaded through the same parser as an upload.
+    `npm run samples -w backend` writes them to `samples/` as files to upload
+    by hand; a test checks the files still match.
   - `config/product.json`: brand, locale, currency, time zone, amount options,
     minimum statement length, decline reasons and illustrative pricing.
     Validated at startup, including the 35% APR cap.
   - `src/experimental.ts`: the experimental score. Ports the notebook's
     features and scores them with `config/experimental-model.json`, which
     `model/export.py` writes. Computed when a record is sealed; reviewer only.
-  - `src/store.ts`: in-memory state, reset from the fixtures on restart or
-    `POST /api/demo/reset`. Seals evidence records at submit (sha256 over
+  - `src/store.ts`: in-memory state, reset from the fixtures on restart.
+    Seals evidence records at submit (sha256 over
     canonical items), prices offers from config (`src/pricing.ts`), and
     enforces the decision rules (written reason, amount range, decline reason
     the applicant sees, one decision per application) whatever the frontend sends.
@@ -88,6 +91,12 @@ npm workspaces, Node 24+.
 
 ## Working conventions
 
+- **The app is the product, never a demo.** This is an MVP and its scope will
+  change, but no screen may present itself as a demo. No "demo" or "sample
+  data" labels, sample-file buttons, prefilled forms, reset buttons, or links
+  between the borrower and reviewer sides. Demo tooling stays on the
+  developer's side: the backend fixtures that seed the queue, and the CSV
+  files in `samples/`.
 - `docs/design/*.dc.html` are the design source. They depend on a runtime that
   is not included, so read them as a spec; don't try to run or import them.
 - No hard-coded values in components. Sample data comes from the API (backed by

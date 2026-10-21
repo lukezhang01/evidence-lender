@@ -258,16 +258,8 @@ export interface ProductConfig {
   declineReasons: { id: string; label: string; whatWouldChange: string[] }[];
 }
 
-export interface SampleStatementSummary {
-  id: string;
-  label: string;
-}
-
 // GET /api/config
-export interface ConfigResponse extends ProductConfig {
-  sampleData: boolean; // true while the backend serves fixtures
-  demo: { sampleApplicant: Applicant; sampleStatements: SampleStatementSummary[] } | null;
-}
+export type ConfigResponse = ProductConfig;
 
 export type FieldErrors = Partial<Record<string, string>>;
 

@@ -159,26 +159,3 @@
 .fileInput {
   display: none;
 }
-
-.demoProfiles {
-  margin: 0;
-  padding: 12px 14px 14px;
-  border: 1px dashed var(--color-dashed-border);
-  border-radius: var(--radius-input);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.demoLegend {
-  padding: 0 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
-.demoChoices {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}

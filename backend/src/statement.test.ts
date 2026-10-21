@@ -49,6 +49,30 @@ describe('parseStatement', () => {
     assert.equal(s.hasBalance, false);
   });
 
+  it('reads the direction from a Type column when amounts have no sign, and needs no Description', () => {
+    const s = parseStatement('date,type,amount,balance\n1997-07-05,CREDIT,17178.0,29178.0\n1997-07-08,DEBIT,6500.0,22678.0\n1997-07-24,withdrawal,1200,21478\n1997-07-25,VYBER,78,21400\n');
+    assert.deepEqual(
+      s.rows.map((r) => [r.amount, r.description]),
+      [
+        [17178, 'CREDIT'],
+        [-6500, 'DEBIT'],
+        [-1200, 'withdrawal'],
+        [-78, 'VYBER'],
+      ],
+    );
+    assert.equal(s.hasDescription, false);
+    assert.equal(s.hasBalance, true);
+  });
+
+  it('lets signed amounts decide when there is also a Type column', () => {
+    const s = parseStatement('Date,Description,Type,Amount\n2026-01-01,Pay,POS,100\n2026-01-02,Shop,POS,-40\n');
+    assert.deepEqual(
+      s.rows.map((r) => r.amount),
+      [100, -40],
+    );
+    assert.equal(s.hasDescription, true);
+  });
+
   it('treats the balance as missing unless every row has one', () => {
     const s = parseStatement('Date,Description,Amount,Balance\n2026-01-01,A,10,10\n2026-01-02,B,5,\n');
     assert.equal(s.hasBalance, false);
@@ -58,7 +82,9 @@ describe('parseStatement', () => {
   it('explains what is wrong, with the row number', () => {
     const cases: [string, RegExp][] = [
       ['', /empty/],
-      ['Date,Amount\n2026-01-01,5', /Description/],
+      ['Date,Description\n2026-01-01,A', /Date and Amount/],
+      ['Date,Type,Amount\n2026-01-01,CREDIT,5\n2026-01-02,POS,5', /Row 3: the type “POS”/],
+      ['Date,Type,Amount\n2026-01-01,,5', /Row 2: the type is empty/],
       ['Date,Description,Amount\n', /no transactions/],
       ['Date,Description,Amount\n03/27/2026,A,5', /Row 2: “03\/27\/2026”/],
       ['Date,Description,Amount\n2026-02-30,A,5', /Row 2/],
@@ -127,5 +153,17 @@ describe('statementFacts', () => {
     assert.ok(titles.includes('Balances over time'));
     assert.ok(titles.includes('Whose account this is'));
     assert.equal(find(noBalanceNoRent, 'lowest-balance'), undefined);
+  });
+
+  it('without descriptions, claims nothing about pay, rent or fees and says why', () => {
+    const typed = 'Date,Type,Amount,Balance\n2026-01-01,CREDIT,2000,2000\n2026-02-01,DEBIT,1000,1000\n2026-03-31,CREDIT,2000,3000\n';
+    const { items, blindSpots } = facts(typed);
+    assert.deepEqual(
+      items.map((i) => i.id.replace('ev-1-', '')),
+      ['money-in', 'left-over', 'lowest-balance', 'below-zero', 'ending-balance'],
+    );
+    const titles = blindSpots.map((b) => b.title);
+    assert.ok(titles.includes('What the transactions were for'));
+    assert.ok(!titles.includes('Housing costs') && !titles.includes('Where the income comes from'));
   });
 });

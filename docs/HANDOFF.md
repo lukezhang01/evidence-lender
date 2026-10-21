@@ -65,7 +65,11 @@ Everything works end to end against a temporary, in-memory backend.
 
    These four buttons only record the request. Nothing acts on them yet.
 
-**Sample mode** is always on while the backend serves fixtures. It shows a "Demo · sample data" label, prefills the applicant, offers two sample statements on the upload step, adds "Reset sample data" to the review screen, and seeds 4 applications.
+**No demo mode.** The screens never present themselves as a demo (the user's rule, now in CLAUDE.md). Sample data stays on the developer's side:
+- The temporary backend seeds 4 applications from the fixtures. Restarting it resets everything.
+- `samples/` holds the fixture statements as CSV files to upload by hand. `npm run samples -w backend` rewrites them, and a test checks they still match.
+
+An earlier version had a demo mode: a "Demo · sample data" label, a prefilled applicant, sample-statement buttons on the upload step, "Reset sample data", and links between the borrower and reviewer sides. The user had it all removed.
 
 **History:**
 - PR #1 made every prototype button work, including a simulated bank connection.
@@ -82,6 +86,7 @@ Everything works end to end against a temporary, in-memory backend.
 | `backend/src/store.ts` | in-memory state, sealing, decision rules |
 | `backend/src/app.ts` | HTTP routes |
 | `backend/src/fixtures.ts` | all sample data; sample statements are generated as CSV |
+| `samples/` | the sample statements as files, for uploading by hand; written by `npm run samples -w backend` |
 | `backend/config/product.json` | brand, locale, pricing, minimum statement months, decline reasons |
 | `backend/src/experimental.ts` | the experimental score: the notebook's features, ported, and the scoring |
 | `backend/config/experimental-model.json` | the model's medians, scaler, coefficients and test results; written by `model/export.py` |
@@ -96,25 +101,33 @@ Everything works end to end against a temporary, in-memory backend.
 
 - **Columns:** header names are case-insensitive and a few aliases work.
   - Date: `YYYY-MM-DD` or `YYYY/MM/DD` only
-  - Description
-  - Amount (signed), or Debit and Credit instead
+  - Description (optional; without it, pay, rent and fees can't be found)
+  - Amount, in one of three forms:
+    - signed
+    - unsigned, with a Type column giving the direction: CREDIT, CR, DEPOSIT or PRIJEM for money in; DEBIT, DR, WITHDRAWAL, VYDAJ or VYBER for money out. The Czech codes are the Berka data's, which the notebook's demo statement uses. When amounts are signed, Type is ignored.
+    - Debit and Credit columns instead
   - Balance (optional)
 - **Rejected with a message the applicant can act on:**
   - wrong headers
-  - an unreadable date or amount (the message gives the row number)
+  - an unreadable date, amount or type (the message gives the row number)
   - no rows, or more than 5,000
   - less than 3 months (set in config)
   - PDFs and files over 512 KB (checked in the browser)
 - **Facts produced:**
   - average money in per month
-  - the main regular deposit, if one recurring deposit makes up at least half the money in
   - average left over each month
-  - rent, found by "rent" or "landlord" in the description and counted over full calendar months
-  - overdraft and NSF fees, found by keyword
+  - with a Description column only:
+    - the main regular deposit, if one recurring deposit makes up at least half the money in
+    - rent, found by "rent" or "landlord" in the description and counted over full calendar months
+    - overdraft and NSF fees, found by keyword
   - with a Balance column only: lowest balance, days below zero, ending balance
 - **Blind spots:**
   - always: whether the statement is complete, whose account it is, other banks, cash income
-  - when they apply: housing costs (no rent found), where the income comes from (no main deposit), balances over time (no Balance column)
+  - when they apply:
+    - what the transactions were for (no Description column; this replaces the next two)
+    - housing costs (no rent found)
+    - where the income comes from (no main deposit)
+    - balances over time (no Balance column)
 
 ## Decisions not obvious from the code
 
@@ -136,6 +149,8 @@ Everything works end to end against a temporary, in-memory backend.
 
 - **Progress means working, clickable flows**, not scaffolding. When building one step of something, say up front what will and won't work.
 - **Ask before changing the product rules.** That's how "person decides" was chosen.
+- **Never build demo affordances into the app.** Demoing is the user's job, done from their side with `samples/`.
+- **Keep to the current scope.** Don't answer with a long list of options; give the one or two that fit, with a recommendation.
 - **They usually have `npm run dev` running on :3000 and :4000.**
   - Test on other ports: start the backend with `PORT=4100`, and the frontend with `API_BASE_URL=http://localhost:4100 npx next start -p 3100`.
   - Never kill their processes, and tell them when their dev server needs a restart.
@@ -156,7 +171,7 @@ Everything works end to end against a temporary, in-memory backend.
 - **Stale styles in dev:** after classes were added to an existing CSS module, the dev server kept serving the old class names until it was restarted.
 - **Upload size:** Server Actions run one at a time, and the 512 KB browser cap keeps uploads under the action body limit.
 - **No browser tests in the repo.** Earlier checks drove headless Chrome over the DevTools protocol from a throwaway script. Playwright would be the lasting version.
-- **Commands,** all from the repo root: `npm test` (46 backend tests and 5 frontend), `npm run typecheck`, `npm run lint`, `npm run build`.
+- **Commands,** all from the repo root: `npm test` (50 backend tests and 5 frontend), `npm run typecheck`, `npm run lint`, `npm run build`.
 
 ## The notebook (`Berka_Cashflow_PD_Colab.ipynb`)
 

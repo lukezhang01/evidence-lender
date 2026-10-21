@@ -21,7 +21,6 @@
   --color-neutral-text: #3e4a45;
   --color-error: #a12c1f; /* validation messages */
 
-  --color-demo-pill: #e8ebe8; /* prototype: "Demo · sample data" */
   --color-dashed-border: #b9c3bd; /* prototype: "Something we can't see?" */
   --color-warn-border: #e5cfa3; /* prototype: "Not verified" card */
   --color-radio-ring: #8a958f; /* prototype: unselected radio */

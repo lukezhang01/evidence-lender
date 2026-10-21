@@ -71,15 +71,10 @@ describe('HTTP API', () => {
     return res.body;
   }
 
-  it('serves config with the sample-data flag and the borrower’s sample statements', async () => {
+  it('serves the product config, with nothing for demos', async () => {
     const { body } = await call<ConfigResponse>('/api/config');
-    assert.equal(body.sampleData, true);
-    assert.deepEqual(
-      body.demo?.sampleStatements.map((s) => s.id),
-      fixtures.sampleStatements.filter((s) => s.forBorrowers).map((s) => s.id),
-    );
-    const csv = await call<{ csv: string }>(`/api/demo/statements/${body.demo!.sampleStatements[0]!.id}`);
-    assert.match(csv.body.csv, /^Date,Description,Amount,Balance/);
+    assert.deepEqual(body, config);
+    assert.equal((await post('/api/demo/reset', {})).status, 404);
   });
 
   it('lists submitted applications newest first, never drafts', async () => {
@@ -107,9 +102,9 @@ describe('HTTP API', () => {
     assert.equal(ok.body.application.statement?.fileName, s.fileName);
     assert.ok(ok.body.blindSpots.length > 0);
 
-    const bad = await post<ApiError>(`/api/applications/${app.id}/statement`, { fileName: 'x.csv', csv: 'Date,Amount\n' });
+    const bad = await post<ApiError>(`/api/applications/${app.id}/statement`, { fileName: 'x.csv', csv: 'Date,Description\n' });
     assert.equal(bad.status, 422);
-    assert.match(bad.body.error.fields!.statement!, /Description/);
+    assert.match(bad.body.error.fields!.statement!, /Date and Amount/);
 
     const short = await post<ApiError>(`/api/applications/${app.id}/statement`, {
       fileName: 'x.csv',
@@ -215,7 +210,7 @@ describe('HTTP API', () => {
   });
 
   it('returns 404, 405 and 400 where it should', async () => {
-    for (const path of ['/api/applications/9999', '/api/evidence-records/ER-0', '/api/nope', '/api/demo/statements/semimonthly']) {
+    for (const path of ['/api/applications/9999', '/api/evidence-records/ER-0', '/api/nope']) {
       assert.equal((await call(path)).status, 404, path);
     }
     assert.equal((await call('/api/config', { method: 'POST' })).status, 405);

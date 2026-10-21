@@ -14,14 +14,11 @@ export default async function ApplyPage() {
   const format = createFormatters(config);
 
   return (
-    <BorrowerShell brandName={config.brand.name} sampleData={config.sampleData}>
+    <BorrowerShell brandName={config.brand.name}>
       <BorrowerFlow
         amounts={config.borrower.amountOptions.map((value) => ({ value, label: format.wholeMoney(value) }))}
         defaultAmount={config.borrower.defaultAmount}
         minimumStatementMonths={config.borrower.minimumStatementMonths}
-        sampleData={config.sampleData}
-        sampleApplicant={config.demo?.sampleApplicant ?? null}
-        sampleStatements={config.demo?.sampleStatements ?? null}
       />
     </BorrowerShell>
   );

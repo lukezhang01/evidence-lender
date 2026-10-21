@@ -21,7 +21,7 @@ export const reviewers: Reviewer[] = [
 // Stands in for the signed-in user until auth exists.
 export const currentReviewerId = 'rv-001';
 
-// Prefills the borrower form in sample mode so a demo takes seconds.
+// An applicant for tests.
 export const sampleApplicant: Applicant = {
   legalName: 'Sam Rivera',
   email: 'sam.rivera@example.com',
@@ -46,7 +46,7 @@ interface Line {
 
 interface StatementProfile {
   id: string;
-  label: string; // shown on the borrower's "use a sample statement" button
+  label: string; // what the statement shows; names its file in samples/
   fileName: string;
   from: string;
   to: string;
@@ -148,9 +148,6 @@ const profiles: StatementProfile[] = [
   },
 ];
 
-// Which samples the borrower can pick in sample mode.
-const borrowerSamples = ['steady', 'tight'];
-
 // Deterministic pseudo-random numbers, so the samples are the same every run.
 function mulberry32(seed: number) {
   let a = seed;
@@ -247,7 +244,6 @@ export interface SampleStatement {
   label: string;
   fileName: string;
   csv: string;
-  forBorrowers: boolean;
 }
 
 export const sampleStatements: SampleStatement[] = profiles.map((p) => ({
@@ -255,7 +251,14 @@ export const sampleStatements: SampleStatement[] = profiles.map((p) => ({
   label: p.label,
   fileName: p.fileName,
   csv: statementCsv(p),
-  forBorrowers: borrowerSamples.includes(p.id),
+}));
+
+// The same statements as files in samples/ at the repo root, to upload by hand
+// when showing the app. The app itself never offers them.
+// `npm run samples -w backend` writes them; a test checks they match.
+export const sampleFiles = sampleStatements.map((s) => ({
+  name: `${s.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.csv`,
+  csv: s.csv,
 }));
 
 // ---- sample applications ---------------------------------------------------

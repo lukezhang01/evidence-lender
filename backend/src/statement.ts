@@ -4,8 +4,10 @@
 //
 // Accepted columns (header names are case-insensitive):
 //   Date         YYYY-MM-DD (or YYYY/MM/DD)
-//   Description  free text
+//   Description  optional, free text. Without it, pay, rent and fees can't be
+//                found, and that is listed as a blind spot.
 //   Amount       money in positive, money out negative
+//     or Amount with no negatives + Type (CREDIT or DEBIT) for the direction
 //     or Debit + Credit instead of Amount
 //   Balance      optional, the balance after each transaction
 // This maps onto the single-account statement schema of the cash-flow model
@@ -20,6 +22,7 @@ export class StatementError extends Error {}
 
 export interface ParsedStatement {
   rows: SourceRecord[];
+  hasDescription: boolean;
   hasBalance: boolean;
   firstDate: string;
   lastDate: string;
@@ -78,7 +81,13 @@ const COLUMNS = {
   debit: ['debit', 'debits', 'withdrawal', 'withdrawals', 'money out'],
   credit: ['credit', 'credits', 'deposit', 'deposits', 'money in'],
   balance: ['balance', 'running balance'],
+  type: ['type', 'transaction type'],
 };
+
+// What a Type column can say when amounts carry no sign. PRIJEM, VYDAJ and
+// VYBER are the Berka data's codes, which the course notebook's demo statement uses.
+const MONEY_IN_TYPES = new Set(['credit', 'cr', 'deposit', 'prijem']);
+const MONEY_OUT_TYPES = new Set(['debit', 'dr', 'withdrawal', 'vydaj', 'vyber']);
 
 const normalize = (h: string) => h.trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -122,11 +131,12 @@ export function parseStatement(csv: string): ParsedStatement {
     debit: find(COLUMNS.debit),
     credit: find(COLUMNS.credit),
     balance: find(COLUMNS.balance),
+    type: find(COLUMNS.type),
   };
   const splitAmount = col.amount < 0 && col.debit >= 0 && col.credit >= 0;
-  if (col.date < 0 || col.description < 0 || (col.amount < 0 && !splitAmount)) {
+  if (col.date < 0 || (col.amount < 0 && !splitAmount)) {
     throw new StatementError(
-      'The first row needs Date, Description and Amount column names (Debit and Credit columns work instead of Amount).',
+      'The first row needs Date and Amount column names (Debit and Credit columns work instead of Amount).',
     );
   }
 
@@ -161,17 +171,34 @@ export function parseStatement(csv: string): ParsedStatement {
     if (balance === null) balancesComplete = false;
     return {
       date,
-      description: cell(col.description).trim(),
+      // Without a Description column, show the row's type, if any, so the row isn't blank.
+      description: cell(col.description >= 0 ? col.description : col.type).trim(),
       amount: Math.round(amount * 100) / 100,
       ...(balance !== null ? { balance } : {}),
     };
   });
+
+  // Amounts with no negatives need the Type column to say which way the money
+  // went. When amounts are signed, the sign decides and Type is ignored.
+  if (!splitAmount && col.type >= 0 && rows.every((r) => r.amount >= 0)) {
+    rows.forEach((r, i) => {
+      const type = (body[i]![col.type] ?? '').trim();
+      if (MONEY_OUT_TYPES.has(type.toLowerCase())) {
+        if (r.amount > 0) r.amount = -r.amount;
+      } else if (!MONEY_IN_TYPES.has(type.toLowerCase())) {
+        throw new StatementError(
+          `Row ${i + 2}: ${type ? `the type “${type}” isn’t one we can read` : 'the type is empty'}. Use CREDIT for money in and DEBIT for money out.`,
+        );
+      }
+    });
+  }
 
   // Keep file order within a day: that's the order balances were computed in.
   const ordered = rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.date.localeCompare(b.r.date) || a.i - b.i);
   const sorted = ordered.map((x) => x.r);
   return {
     rows: balancesComplete ? sorted : sorted.map(({ balance: _balance, ...r }) => r),
+    hasDescription: col.description >= 0,
     hasBalance: balancesComplete,
     firstDate: sorted[0]!.date,
     lastDate: sorted.at(-1)!.date,
@@ -270,25 +297,34 @@ export function statementFacts(input: FactInput, f: FactFormat): { items: Eviden
     records: moneyIn,
   });
 
-  const byDescription = new Map<string, SourceRecord[]>();
-  for (const r of moneyIn) {
-    const key = r.description.toUpperCase().replace(/\s+/g, ' ');
-    byDescription.set(key, [...(byDescription.get(key) ?? []), r]);
-  }
-  const [regular] = [...byDescription.values()].sort((a, b) => sum(b) - sum(a));
-  if (regular && moneyIn.length > 0 && sum(regular) >= sum(moneyIn) / 2 && regular.length >= Math.max(2, Math.floor(months))) {
-    const share = Math.round((sum(regular) / sum(moneyIn)) * 100);
-    fact('regular-deposit', {
-      category: 'capacity',
-      statement: `${share}% of it came from ${regular.length} deposits described as “${regular[0]!.description}”, about ${f.money(sum(regular) / regular.length)} each`,
-      sourceDetail: `${fileName}: deposits with the same description`,
-      records: regular,
+  // Pay, rent and fees are found by description. Without descriptions, say so
+  // once (rule 3) instead of reporting each one as missing.
+  if (!statement.hasDescription) {
+    blindSpots.push({
+      title: 'What the transactions were for',
+      note: 'The file has no Description column, so we can’t pick out pay, rent or fees. Ask where their income comes from and how they pay for housing.',
     });
   } else {
-    blindSpots.push({
-      title: 'Where the income comes from',
-      note: 'No single regular deposit makes up most of the money coming in.',
-    });
+    const byDescription = new Map<string, SourceRecord[]>();
+    for (const r of moneyIn) {
+      const key = r.description.toUpperCase().replace(/\s+/g, ' ');
+      byDescription.set(key, [...(byDescription.get(key) ?? []), r]);
+    }
+    const [regular] = [...byDescription.values()].sort((a, b) => sum(b) - sum(a));
+    if (regular && moneyIn.length > 0 && sum(regular) >= sum(moneyIn) / 2 && regular.length >= Math.max(2, Math.floor(months))) {
+      const share = Math.round((sum(regular) / sum(moneyIn)) * 100);
+      fact('regular-deposit', {
+        category: 'capacity',
+        statement: `${share}% of it came from ${regular.length} deposits described as “${regular[0]!.description}”, about ${f.money(sum(regular) / regular.length)} each`,
+        sourceDetail: `${fileName}: deposits with the same description`,
+        records: regular,
+      });
+    } else {
+      blindSpots.push({
+        title: 'Where the income comes from',
+        note: 'No single regular deposit makes up most of the money coming in.',
+      });
+    }
   }
 
   const leftOver = Math.round((sum(moneyIn) + sum(moneyOut)) / months);
@@ -304,38 +340,40 @@ export function statementFacts(input: FactInput, f: FactFormat): { items: Eviden
   });
 
   // Willingness
-  const rent = moneyOut.filter((r) => RENT.test(r.description));
-  if (rent.length > 0) {
-    // Count whole calendar months only, so a statement that starts mid-month
-    // doesn't look like a missed payment.
-    const rentMonths = new Set(rent.map((r) => month(r.date)).filter((m) => fullMonths.includes(m))).size;
-    const typical = Math.round(-sum(rent) / rent.length);
-    const inMonths = `in ${rentMonths} of ${fullMonths.length} full ${fullMonths.length === 1 ? 'month' : 'months'}`;
-    fact('rent', {
+  if (statement.hasDescription) {
+    const rent = moneyOut.filter((r) => RENT.test(r.description));
+    if (rent.length > 0) {
+      // Count whole calendar months only, so a statement that starts mid-month
+      // doesn't look like a missed payment.
+      const rentMonths = new Set(rent.map((r) => month(r.date)).filter((m) => fullMonths.includes(m))).size;
+      const typical = Math.round(-sum(rent) / rent.length);
+      const inMonths = `in ${rentMonths} of ${fullMonths.length} full ${fullMonths.length === 1 ? 'month' : 'months'}`;
+      fact('rent', {
+        category: 'willingness',
+        statement: `Payments that look like rent, about ${f.money(typical)}, ${inMonths}`,
+        sourceDetail: `${fileName}: ${rent.length} payments mentioning rent or a landlord`,
+        figure: { name: 'monthly_rent', value: typical, note: inMonths.replace(/^in/, 'In') },
+        records: rent,
+      });
+    } else {
+      blindSpots.push({
+        title: 'Housing costs',
+        note: 'No payment in the file mentions rent or a landlord. Ask how they pay for housing.',
+      });
+    }
+
+    const fees = moneyOut.filter((r) => FEE.test(r.description));
+    fact('fees', {
       category: 'willingness',
-      statement: `Payments that look like rent, about ${f.money(typical)}, ${inMonths}`,
-      sourceDetail: `${fileName}: ${rent.length} payments mentioning rent or a landlord`,
-      figure: { name: 'monthly_rent', value: typical, note: inMonths.replace(/^in/, 'In') },
-      records: rent,
-    });
-  } else {
-    blindSpots.push({
-      title: 'Housing costs',
-      note: 'No payment in the file mentions rent or a landlord. Ask how they pay for housing.',
+      statement:
+        fees.length === 0
+          ? 'No overdraft or returned-payment fees'
+          : `${fees.length} overdraft or returned-payment ${fees.length === 1 ? 'fee' : 'fees'}, ${f.money(-sum(fees))} in total`,
+      sourceDetail: `${fileName}: descriptions mentioning NSF, overdraft or returned payments`,
+      figure: { name: 'overdraft_fees', value: fees.length, note: 'Over the whole statement' },
+      records: fees,
     });
   }
-
-  const fees = moneyOut.filter((r) => FEE.test(r.description));
-  fact('fees', {
-    category: 'willingness',
-    statement:
-      fees.length === 0
-        ? 'No overdraft or returned-payment fees'
-        : `${fees.length} overdraft or returned-payment ${fees.length === 1 ? 'fee' : 'fees'}, ${f.money(-sum(fees))} in total`,
-    sourceDetail: `${fileName}: descriptions mentioning NSF, overdraft or returned payments`,
-    figure: { name: 'overdraft_fees', value: fees.length, note: 'Over the whole statement' },
-    records: fees,
-  });
 
   // Resilience
   if (statement.hasBalance) {

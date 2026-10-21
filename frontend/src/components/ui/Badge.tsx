@@ -2,7 +2,7 @@ import type { Tone } from '@/lib/labels';
 import styles from './Badge.module.css';
 
 interface BadgeProps {
-  tone: Tone | 'demo';
+  tone: Tone;
   title?: string;
   children: React.ReactNode;
 }

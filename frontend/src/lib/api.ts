@@ -72,7 +72,6 @@ export const getBorrowerView = cache((id: string) => getJson<BorrowerView>(app(i
 export const getEvidenceRecord = cache((id: string) =>
   getJson<EvidenceRecord>(`/api/evidence-records/${segment(id)}`),
 );
-export const getSampleStatement = (id: string) => getJson<StatementUpload>(`/api/demo/statements/${segment(id)}`);
 
 export async function getQuote(amount: number): Promise<Offer | undefined> {
   const res = await fetch(apiUrl(`/api/quote?amount=${encodeURIComponent(amount)}`), { cache: 'no-store' });
@@ -96,5 +95,3 @@ export const recordDecision = (id: string, body: DecisionRequest) => send<Decisi
 
 export const sendBorrowerRequest = (id: string, kind: BorrowerRequest['kind']) =>
   send<Application>(app(id, '/borrower-requests'), { kind });
-
-export const resetDemo = () => send<{ ok: true }>('/api/demo/reset', {});

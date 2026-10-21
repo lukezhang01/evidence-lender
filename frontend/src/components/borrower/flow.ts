@@ -33,8 +33,7 @@ export type FlowEvent =
   | { type: 'edit_note'; value: string }
   | { type: 'submit_started' }
   | { type: 'submit_failed'; message: string }
-  | { type: 'back' }
-  | { type: 'restart'; state: FlowState };
+  | { type: 'back' };
 
 // Where Back goes from each step. Steps not listed have no Back.
 export const backTo: Partial<Record<Step, Step>> = {
@@ -108,7 +107,5 @@ export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
       const target = backTo[state.step];
       return target && !state.submitting && !state.uploading ? { ...state, step: target, uploadError: null } : state;
     }
-    case 'restart':
-      return event.state;
   }
 }

@@ -19,7 +19,6 @@ export default async function ReviewLayout({ children }: LayoutProps<'/review'>)
   return (
     <LenderShell
       brandName={config.brand.name}
-      sampleData={config.sampleData}
       reviewer={reviewer}
       queue={<Queue applications={applications} format={createFormatters(config)} />}
     >

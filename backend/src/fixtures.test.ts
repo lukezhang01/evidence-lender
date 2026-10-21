@@ -1,5 +1,6 @@
 // Product rules from CLAUDE.md that can be checked mechanically on the sample data.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { loadProductConfig } from './config.ts';
 import * as fixtures from './fixtures.ts';
@@ -30,7 +31,13 @@ describe('fixtures', () => {
       assert.ok(parsed.hasBalance, s.id);
       assert.ok(coversMonths(parsed, config.borrower.minimumStatementMonths), s.id);
     }
-    assert.ok(fixtures.sampleStatements.some((s) => s.forBorrowers));
+  });
+
+  it('matches the files in samples/ (npm run samples -w backend rewrites them)', () => {
+    assert.equal(new Set(fixtures.sampleFiles.map((f) => f.name)).size, fixtures.sampleFiles.length);
+    for (const f of fixtures.sampleFiles) {
+      assert.equal(readFileSync(new URL(`../../samples/${f.name}`, import.meta.url), 'utf8'), f.csv, f.name);
+    }
   });
 
   it('loads every seeded application with a sealed record', () => {

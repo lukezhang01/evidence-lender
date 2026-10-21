@@ -43,15 +43,6 @@ export async function uploadStatementAction(input: StatementInput, file: { fileN
   return upload(input, file);
 }
 
-// Sample mode only: uploads one of the backend's sample statements.
-export async function uploadSampleStatementAction(input: StatementInput, sampleId: string) {
-  const sample = await api.getSampleStatement(sampleId);
-  if (!sample) {
-    return { ...failure({ message: 'That sample statement isn’t available.', fields: {} }), applicationId: input.applicationId };
-  }
-  return upload(input, sample);
-}
-
 export async function submitApplicationAction(
   applicationId: string,
   input: { applicant: Applicant; requestedAmount: number; borrowerNote: string },
@@ -82,10 +73,4 @@ export async function quoteAction(amount: number): Promise<{ monthlyPayment: str
   if (!Number.isInteger(amount)) return null;
   const offer = await api.getQuote(amount);
   return offer ? { monthlyPayment: createFormatters(await api.getConfig()).money(offer.monthlyPayment) } : null;
-}
-
-export async function resetDemoAction(): Promise<void> {
-  const result = await api.resetDemo();
-  if (!result.ok) throw new Error(result.message);
-  redirect('/review');
 }

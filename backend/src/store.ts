@@ -26,7 +26,6 @@ import { coversMonths, type ParsedStatement, parseStatement, StatementError, sta
 export interface StoreData {
   reviewers: Reviewer[];
   currentReviewerId: string;
-  sampleApplicant: Applicant;
   sampleStatements: SampleStatement[];
   applicationSeeds: ApplicationSeed[];
   decisions: DecisionFixture[];
@@ -69,8 +68,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_TEXT) : '');
 const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 
-// In-memory state over the fixtures. Resettable for demos; replaced by real
-// persistence later.
+// In-memory state over the fixtures, reset on restart (and by tests). Replaced
+// by real persistence later.
 export function createStore(config: ProductConfig, data: StoreData, options: StoreOptions = {}) {
   const now = () => (options.now ?? (() => new Date()))().toISOString();
   const model = options.model ?? loadExperimentalModel();
@@ -381,20 +380,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
   }
 
   return {
-    getConfig(): ConfigResponse {
-      return {
-        ...config,
-        sampleData: true,
-        demo: {
-          sampleApplicant: data.sampleApplicant,
-          sampleStatements: data.sampleStatements.filter((s) => s.forBorrowers).map((s) => ({ id: s.id, label: s.label })),
-        },
-      };
-    },
-    getSampleStatement(id: string) {
-      const sample = data.sampleStatements.find((s) => s.id === id && s.forBorrowers);
-      return sample ? { fileName: sample.fileName, csv: sample.csv } : undefined;
-    },
+    getConfig: (): ConfigResponse => config,
     getCurrentReviewer: () => data.reviewers.find((r) => r.id === data.currentReviewerId),
     listReviewers: () => data.reviewers,
     listApplications: () =>

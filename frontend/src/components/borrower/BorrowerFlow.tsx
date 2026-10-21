@@ -1,11 +1,9 @@
 'use client';
 
-import type { Applicant, SampleStatementSummary } from '@evidence-lender/backend/contract';
-import Link from 'next/link';
 import { startTransition, useEffect, useReducer, useRef } from 'react';
 import { ArrowLeftIcon } from '@/components/ui/icons';
-import { submitApplicationAction, uploadSampleStatementAction, uploadStatementAction } from '@/lib/actions';
-import { BorrowerCard, BorrowerFooter } from './BorrowerShell';
+import { submitApplicationAction, uploadStatementAction } from '@/lib/actions';
+import { BorrowerCard } from './BorrowerShell';
 import { FoundStep } from './FoundStep';
 import { Progress } from './Progress';
 import { StatementStep } from './StatementStep';
@@ -17,9 +15,6 @@ interface BorrowerFlowProps {
   amounts: { value: number; label: string }[];
   defaultAmount: number;
   minimumStatementMonths: number;
-  sampleData: boolean;
-  sampleApplicant: Applicant | null;
-  sampleStatements: SampleStatementSummary[] | null;
 }
 
 // Keeps well under the Server Action body limit; a year of transactions is far smaller.
@@ -30,7 +25,7 @@ export function BorrowerFlow(props: BorrowerFlowProps) {
   const initial = (): FlowState =>
     initialFlowState({
       amount: props.defaultAmount,
-      applicant: props.sampleApplicant ?? { legalName: '', email: '', phone: '' },
+      applicant: { legalName: '', email: '', phone: '' },
     });
   const [state, dispatch] = useReducer(flowReducer, undefined, initial);
   const card = useRef<HTMLElement>(null);
@@ -126,9 +121,7 @@ export function BorrowerFlow(props: BorrowerFlowProps) {
             minimumMonths={props.minimumStatementMonths}
             uploading={state.uploading}
             error={state.uploadError}
-            samples={props.sampleStatements}
             onFile={uploadFile}
-            onSample={(id) => upload(() => uploadSampleStatementAction(statementInput(), id))}
           />
         )}
         {step === 'found' && state.found && (
@@ -145,15 +138,6 @@ export function BorrowerFlow(props: BorrowerFlowProps) {
           />
         )}
       </BorrowerCard>
-
-      {props.sampleData && (
-        <BorrowerFooter>
-          <Link href="/review">Open the lender review screen</Link>
-          <button type="button" onClick={() => dispatch({ type: 'restart', state: initial() })}>
-            Restart demo
-          </button>
-        </BorrowerFooter>
-      )}
     </>
   );
 }

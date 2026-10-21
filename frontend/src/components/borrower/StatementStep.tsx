@@ -1,6 +1,5 @@
 'use client';
 
-import type { SampleStatementSummary } from '@evidence-lender/backend/contract';
 import { useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { CheckIcon, CrossIcon, EyeIcon } from '@/components/ui/icons';
@@ -11,19 +10,17 @@ interface StatementStepProps {
   minimumMonths: number;
   uploading: boolean;
   error: string | null;
-  samples: SampleStatementSummary[] | null;
   onFile: (file: File) => void;
-  onSample: (id: string) => void;
 }
 
 const fileNeeds = [
   'A Date column, like 2026-03-27',
-  'A Description column',
-  'An Amount column, with money in as positive and money out as negative (or Debit and Credit columns)',
+  'An Amount column, with money in as positive and money out as negative. Debit and Credit columns work too, or a Type column that says CREDIT or DEBIT.',
+  'A Description column, so we can find your pay, rent and any fees',
   'A Balance column, if your bank includes one',
 ];
 
-export function StatementStep({ minimumMonths, uploading, error, samples, onFile, onSample }: StatementStepProps) {
+export function StatementStep({ minimumMonths, uploading, error, onFile }: StatementStepProps) {
   const input = useRef<HTMLInputElement>(null);
 
   return (
@@ -96,25 +93,6 @@ export function StatementStep({ minimumMonths, uploading, error, samples, onFile
           {uploading ? 'Reading your statement…' : 'Choose a CSV file'}
         </Button>
       </div>
-
-      {samples && samples.length > 0 && (
-        <fieldset className={own.demoProfiles}>
-          <legend className={own.demoLegend}>Demo: no file handy? Use a sample statement</legend>
-          <div className={own.demoChoices}>
-            {samples.map((sample) => (
-              <button
-                key={sample.id}
-                type="button"
-                className={s.smallButton}
-                disabled={uploading}
-                onClick={() => onSample(sample.id)}
-              >
-                {sample.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      )}
 
       <div className={own.note}>
         <span className={s.iconAccent}>

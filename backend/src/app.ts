@@ -68,19 +68,6 @@ export function createRequestHandler(store: Store) {
       pattern: /^\/api\/evidence-records\/(?<id>[^/]+)$/,
       handler: (ctx) => store.getEvidenceRecord(id(ctx)),
     },
-    {
-      method: 'GET',
-      pattern: /^\/api\/demo\/statements\/(?<id>[^/]+)$/,
-      handler: (ctx) => store.getSampleStatement(id(ctx)),
-    },
-    {
-      method: 'POST',
-      pattern: /^\/api\/demo\/reset$/,
-      handler: () => {
-        store.reset();
-        return { ok: true };
-      },
-    },
   ];
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {

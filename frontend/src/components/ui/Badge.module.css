@@ -23,11 +23,3 @@
   background: var(--color-neutral-tint);
   color: var(--color-neutral-text);
 }
-
-.demo {
-  padding: 5px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-demo-pill);
-  color: var(--color-neutral-text);
-  font-weight: 500;
-}

@@ -25,7 +25,7 @@ export default async function ApplicationStatusPage({ params }: PageProps<'/appl
   const { outcome } = view;
 
   return (
-    <BorrowerShell brandName={config.brand.name} sampleData={config.sampleData}>
+    <BorrowerShell brandName={config.brand.name}>
       <BorrowerCard>
         <div className={s.top}>
           <Progress current={4} />
@@ -35,9 +35,6 @@ export default async function ApplicationStatusPage({ params }: PageProps<'/appl
         {outcome.kind === 'declined' && <Declined view={view} config={config} format={format} />}
       </BorrowerCard>
       <BorrowerFooter>
-        {config.sampleData && (
-          <Link href={`/review/${encodeURIComponent(id)}`}>Open this application in the review screen</Link>
-        )}
         <Link href="/apply">Start a new application</Link>
       </BorrowerFooter>
     </BorrowerShell>
@@ -90,7 +87,7 @@ function InReview({ view, format }: ScreenProps) {
   );
 }
 
-function Approved({ view, config, format }: ScreenProps) {
+function Approved({ view, format }: ScreenProps) {
   if (view.outcome.kind !== 'approved') return null;
   const { offer } = view.outcome;
   const { application } = view;
@@ -129,9 +126,6 @@ function Approved({ view, config, format }: ScreenProps) {
             </div>
           ))}
         </dl>
-        {config.pricing.illustrative && (
-          <span className={s.caption}>Illustrative terms for this demo. [Your pricing] goes here.</span>
-        )}
       </div>
       <div className={s.inset}>
         <span className={s.iconAccent}>

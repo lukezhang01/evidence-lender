@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
+    "samples": "node src/write-samples.ts",
     "test": "node --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
