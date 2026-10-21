@@ -1,7 +1,7 @@
 import type { Application, EvidenceRecord } from '@evidence-lender/backend/contract';
 import { Badge } from '@/components/ui/Badge';
 import { LockIcon } from '@/components/ui/icons';
-import { provenanceLine, shortHash, summarizeRecord } from '@/lib/evidence';
+import { countLabel, provenanceLine, shortHash, summarizeRecord } from '@/lib/evidence';
 import type { Formatters } from '@/lib/format';
 import { applicationStatus, flagLabel } from '@/lib/labels';
 import { Card } from './Card';
@@ -12,8 +12,6 @@ interface ApplicationHeaderProps {
   record: EvidenceRecord | undefined;
   format: Formatters;
 }
-
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export function ApplicationHeader({ application, record, format }: ApplicationHeaderProps) {
   const status = applicationStatus[application.status];
@@ -38,8 +36,8 @@ export function ApplicationHeader({ application, record, format }: ApplicationHe
             {application.applicant.legalName}
           </h1>
           <span className={styles.meta}>
-            Application {application.id} · requested {format.wholeMoney(application.requestedAmount)} ·
-            submitted {format.dateTime(application.submittedAt)}
+            Application {application.id} · requested {format.wholeMoney(application.requestedAmount)}
+            {application.submittedAt && ` · submitted ${format.dateTime(application.submittedAt)}`}
           </span>
         </div>
         {chips.length > 0 && <div className={styles.chips}>{chips}</div>}
@@ -59,6 +57,13 @@ export function ApplicationHeader({ application, record, format }: ApplicationHe
         <div className={styles.record}>No evidence record yet</div>
       )}
 
+      {application.borrowerNote && (
+        <div className={styles.borrowerNote}>
+          <span className={styles.borrowerNoteLabel}>Applicant’s note · written by the applicant, not verified</span>
+          <p className={styles.borrowerNoteText}>{application.borrowerNote}</p>
+        </div>
+      )}
+
       {status.note && (
         <div className={styles.status}>
           <Badge tone={status.tone}>{status.label}</Badge>
@@ -73,7 +78,7 @@ function RecordCounts({ record }: { record: EvidenceRecord }) {
   const { factCount, sourceCount } = summarizeRecord(record);
   return (
     <span>
-      {count(factCount, 'fact', 'facts')} · {count(sourceCount, 'source', 'sources')}
+      {countLabel(factCount, 'fact', 'facts')} · {countLabel(sourceCount, 'source', 'sources')}
     </span>
   );
 }

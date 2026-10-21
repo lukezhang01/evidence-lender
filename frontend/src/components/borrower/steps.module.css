@@ -1,0 +1,356 @@
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- start ---- */
+
+.amountGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.amount {
+  flex: 1 1 64px;
+  height: var(--input-height);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.amount[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+  color: var(--color-accent-tint-text);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--color-ground);
+  border-radius: var(--radius-inset);
+}
+
+.howLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.howList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.howStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.howNumber {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--color-input-border);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.howText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.howTitle {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.howBody {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* ---- consent ---- */
+
+.consentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.canRead,
+.cannot {
+  padding: 18px;
+  border-radius: var(--radius-inset);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.canRead {
+  background: var(--color-soft-accent);
+}
+
+.cannot {
+  background: var(--color-ground);
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panelTitleAccent {
+  composes: panelTitle;
+  color: var(--color-accent-tint-text);
+}
+
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ---- manual ---- */
+
+.options {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inset);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.option:has(:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-soft-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.option:has(:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.radio {
+  appearance: none;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-radio-ring);
+  background: var(--color-surface);
+}
+
+.radio:checked {
+  border: 6px solid var(--color-accent);
+}
+
+.radio:focus-visible {
+  outline: none;
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.optionDesc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.manualNote {
+  padding: 14px 16px;
+  border-radius: var(--radius-inset);
+  background: var(--color-ground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ---- bank ---- */
+
+.demoProfiles {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-dashed-border);
+  border-radius: var(--radius-input);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demoLegend {
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.demoChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.demoChoice {
+  min-height: var(--control-min);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.demoChoice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.banks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inset);
+  overflow: hidden;
+}
+
+.banks li + li {
+  border-top: 1px solid var(--color-divider);
+}
+
+.bank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.bank:hover {
+  background: var(--color-ground);
+}
+
+.bankName {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bankIcon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-mark);
+  background: var(--color-ground);
+  color: var(--color-neutral-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- connecting ---- */
+
+.connecting {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 8px 0;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-divider);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  width: 0;
+  background: var(--color-accent);
+  animation: fill 2.4s ease-out forwards;
+}
+
+@keyframes fill {
+  to {
+    width: 92%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill {
+    animation: none;
+    width: 60%;
+  }
+}
+
+.reading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}

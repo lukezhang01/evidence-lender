@@ -20,6 +20,7 @@ export function validateProductConfig(c: ProductConfig): string[] {
   const problems: string[] = [];
   const isPositive = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n > 0;
   const isNonEmpty = (s: unknown) => typeof s === 'string' && s.trim().length > 0;
+  const isWholePositive = (n: unknown) => Number.isInteger(n) && (n as number) > 0;
 
   if (!isNonEmpty(c.brand?.name)) problems.push('brand.name is required');
   if (!isNonEmpty(c.locale)) problems.push('locale is required');
@@ -32,6 +33,22 @@ export function validateProductConfig(c: ProductConfig): string[] {
   } else if (!options.includes(c.borrower.defaultAmount)) {
     problems.push('borrower.defaultAmount must be one of borrower.amountOptions');
   }
+  if (!isWholePositive(c.borrower?.historyMonths)) {
+    problems.push('borrower.historyMonths must be a positive whole number');
+  }
+  if (!isWholePositive(c.borrower?.recheckMonths)) {
+    problems.push('borrower.recheckMonths must be a positive whole number');
+  }
+
+  const reasons = c.declineReasons;
+  if (!Array.isArray(reasons) || reasons.length === 0) {
+    problems.push('declineReasons must list at least one reason');
+  } else {
+    if (new Set(reasons.map((r) => r.id)).size !== reasons.length) problems.push('declineReasons ids must be unique');
+    if (!reasons.every((r) => isNonEmpty(r.id) && isNonEmpty(r.label) && Array.isArray(r.whatWouldChange))) {
+      problems.push('each decline reason needs an id, a label and a whatWouldChange list');
+    }
+  }
 
   const p = c.pricing;
   if (!p) {
@@ -41,11 +58,9 @@ export function validateProductConfig(c: ProductConfig): string[] {
   if (!isPositive(p.apr) || p.apr >= CRIMINAL_RATE_CAP_APR) {
     problems.push(`pricing.apr must be above 0 and below ${CRIMINAL_RATE_CAP_APR}`);
   }
-  if (!Number.isInteger(p.termMonths) || p.termMonths <= 0) {
-    problems.push('pricing.termMonths must be a positive whole number');
-  }
+  if (!isWholePositive(p.termMonths)) problems.push('pricing.termMonths must be a positive whole number');
   if (!isPositive(p.starterLimit)) problems.push('pricing.starterLimit must be positive');
-  if (!Number.isInteger(p.stepUp?.onTimePayments) || p.stepUp.onTimePayments <= 0) {
+  if (!isWholePositive(p.stepUp?.onTimePayments)) {
     problems.push('pricing.stepUp.onTimePayments must be a positive whole number');
   }
   if (!isPositive(p.stepUp?.limit) || p.stepUp.limit < p.starterLimit) {

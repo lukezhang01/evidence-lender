@@ -1,0 +1,213 @@
+/* Evidence sections, Not verified and Blind spots (docs/design/Lender.dc.html). */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lender-card);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cardWarn {
+  composes: card;
+  border-color: var(--color-warn-border);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.question {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.iconOk {
+  flex: none;
+  display: flex;
+  padding-top: 3px;
+  color: var(--color-accent);
+}
+
+.iconWarn {
+  composes: iconOk;
+  padding-top: 2px;
+  color: var(--color-warn-text);
+}
+
+.iconMuted {
+  composes: iconOk;
+  padding-top: 2px;
+  color: var(--color-text-muted);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.statement {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.explain {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.provenance {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-min);
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.tableWrap {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-input);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.table th {
+  padding: 9px 14px;
+  background: var(--color-ground);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.table td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-divider);
+  vertical-align: top;
+}
+
+.table th:last-child,
+.table td:last-child {
+  text-align: right;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-neutral-text);
+  white-space: nowrap;
+}
+
+.monoValue {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.requestButton {
+  align-self: flex-start;
+  min-height: var(--control-min);
+  padding: 0 14px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.requestButton:disabled {
+  opacity: 0.6;
+}
+
+.requested {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: var(--radius-mark);
+  background: var(--color-accent-tint);
+  color: var(--color-accent-tint-text);
+  font-size: 13px;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 18px 16px;
+  }
+}

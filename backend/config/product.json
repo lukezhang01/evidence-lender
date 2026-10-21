@@ -5,7 +5,9 @@
   "timeZone": "America/Toronto",
   "borrower": {
     "amountOptions": [1000, 2000, 4000, 6000],
-    "defaultAmount": 4000
+    "defaultAmount": 4000,
+    "historyMonths": 12,
+    "recheckMonths": 3
   },
   "pricing": {
     "illustrative": true,
@@ -14,5 +16,33 @@
     "starterLimit": 3000,
     "stepUp": { "onTimePayments": 6, "limit": 6000 },
     "reviewerAdjustRange": { "min": 500, "max": 6000 }
-  }
+  },
+  "declineReasons": [
+    {
+      "id": "not_enough_left_over",
+      "label": "Not enough left over after bills",
+      "whatWouldChange": [
+        "3 months in a row with money left over after bills",
+        "No overdrafts in that time"
+      ]
+    },
+    {
+      "id": "income_not_confirmed",
+      "label": "Income couldn’t be confirmed",
+      "whatWouldChange": [
+        "Connect the bank account your pay goes into",
+        "Or connect your payroll account"
+      ]
+    },
+    {
+      "id": "identity_not_confirmed",
+      "label": "Identity couldn’t be confirmed",
+      "whatWouldChange": ["Connect a bank account that is in your own name"]
+    },
+    {
+      "id": "other",
+      "label": "Other, explained to the applicant directly",
+      "whatWouldChange": []
+    }
+  ]
 }
