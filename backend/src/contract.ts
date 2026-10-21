@@ -56,11 +56,79 @@ export interface BlindSpot {
   note: string;
 }
 
+// Added: the experimental score from the course notebook's cash-flow model
+// (backend/src/experimental.ts). Reviewers only: nothing the applicant sees
+// carries it. It isn't a suggestion: it proposes no outcome, amount or reasons,
+// and the reviewer still decides and writes why (rules 2 and 5).
+export type ModelFeatureName =
+  | 'tx_count_180d'
+  | 'history_days_180d'
+  | 'observed_months_180d'
+  | 'total_inflow_180d'
+  | 'total_outflow_180d'
+  | 'net_flow_180d'
+  | 'avg_monthly_inflow_180d'
+  | 'avg_monthly_outflow_180d'
+  | 'avg_monthly_net_180d'
+  | 'std_monthly_net_180d'
+  | 'income_cv_180d'
+  | 'inflow_months_180d'
+  | 'median_tx_balance_180d'
+  | 'min_tx_balance_180d'
+  | 'median_daily_observed_balance_90d'
+  | 'recent_large_inflow_share_30d'
+  | 'negative_balance_tx_share_180d'
+  | 'median_inflow_size_180d';
+
+export interface ModelFeature {
+  name: ModelFeatureName;
+  value: number | null; // null when the statement can't give it; the model then uses the training median
+  trainingMedian: number; // in the training data's currency for money features
+  contribution: number; // how far this feature moved the score's log-odds from a typical training loan; positive raises it
+}
+
+// What the review screen says about the model next to its score.
+export interface ModelSummary {
+  id: string;
+  sha256: string; // over the canonical JSON of the model file
+  name: string;
+  purpose: string;
+  notebook: string;
+  windowDays: number;
+  training: {
+    dataset: string;
+    lender: string; // e.g. "a Czech bank"
+    currency: string; // ISO 4217
+    firstLoanYear: number;
+    lastLoanYear: number;
+    finishedLoans: number;
+    notRepaid: number;
+  };
+  test: {
+    loans: number;
+    notRepaid: number;
+    rocAuc: number; // how often a loan that wasn't repaid scored above one that was
+    rocAucInterval: [number, number]; // 95% bootstrap interval
+  };
+}
+
+interface ScoreBase {
+  model: ModelSummary;
+  statementSha256: string; // the uploaded file it was computed from
+  computedAt: string; // when the record was sealed
+}
+
+export type ExperimentalScore =
+  | (ScoreBase & { status: 'scored'; asOf: string; score: number; features: ModelFeature[] })
+  | (ScoreBase & { status: 'not_scored'; reason: 'no_balance' })
+  | (ScoreBase & { status: 'not_scored'; reason: 'too_short' | 'too_few_transactions'; have: number; need: number });
+
 export interface EvidenceRecord {
   id: string; // e.g. ER-4821
   applicationId: string;
   items: EvidenceItem[];
   blindSpots: BlindSpot[]; // Added. Not part of the hash, which covers items only.
+  experimentalScore: ExperimentalScore; // Added. Not part of the hash either; it names the file and model it came from.
   sealedAt: string;
   sha256: string; // over the canonical JSON of items
 }

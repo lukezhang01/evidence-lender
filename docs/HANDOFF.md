@@ -1,233 +1,182 @@
-# Handoff: borrower application and lender review
+# Handoff
 
-This document is the spec for turning the prototype in `design/` into a real
-front end. The prototype was built for a laptop demo with sample data; this
-explains what each screen does, which behaviour is real, and which is demo
-scaffolding to replace.
+Start here in a new chat. The product rules and code conventions are in
+[CLAUDE.md](../CLAUDE.md). This file covers the goal, the decisions behind the
+current code, where things stand and what's still open. Last updated 2026-10-21.
 
-## 1. The product in one paragraph
+## Goal
 
 A consumer lender for people whose credit score doesn't reflect their ability
-to repay (newcomers with no Canadian file, people recovering from a past
-default). Instead of a bureau score, it underwrites from source-verified
-evidence, mainly read-only bank data, and records where every fact came from.
-Two surfaces: a borrower application and a lender review screen.
+to repay: newcomers to Canada with no credit file, and people rebuilding after a
+default. It decides from bank transactions instead of a bureau score, and every
+fact it shows says where it came from. There are two surfaces: the borrower
+application (`/apply`) and the lender review screen (`/review`).
 
-## 2. Files
+The project started from a clickable design prototype (`docs/design/*.dc.html`)
+and its spec, which described a bigger product with bank connections, ID checks
+and automated suggestions. That spec is in git history:
+`git show d77c357:docs/HANDOFF.md`. Its design tokens and screen layouts are
+built. The rest of it is out of scope for now.
 
-| File | What it is |
+## Scope (decided 2026-10-21, issue #3)
+
+- The only evidence is a bank statement the applicant uploads as a CSV.
+- Out of scope until decided otherwise:
+  - bank APIs, aggregators and payroll connections
+  - PDF statements and other document uploads
+  - ID verification and the credit bureau
+  - automated suggestions (a proposed outcome, amount or reasons)
+  - other ways to verify (payroll, employer)
+- What follows from that:
+  - Uploads are never verified (rule 2), so nothing produces a suggestion.
+  - A reviewer reads the facts, then approves an amount or declines with a reason the applicant sees, and always writes why (rule 5).
+  - The user chose this option over "suggest from the CSV" and "suggest after a person checks it".
+- **Added later the same day (issue #4):** a reviewer-only experimental score from the course notebook's model. It is not a suggestion and the applicant never sees it. The user chose this over showing the model's features as facts, shadow mode, and using the score as the main output. Issue #3 needs its text updated to match (see the open questions).
+
+## What exists
+
+`main` is at 10e6a8f. The experimental score (item 3) is on the `model-integration` branch, for issue #4.
+
+Everything works end to end against a temporary, in-memory backend.
+
+1. **Borrower flow:**
+   - start (pick an amount)
+   - about you (legal name required)
+   - upload the CSV
+   - "Here's what we found": the same facts the reviewer sees, each with its source. The applicant can replace the file or add a note.
+   - submit
+2. **Submit:** seals an evidence record (sha256 over the canonical JSON of the facts) and puts the application in the review queue.
+3. **Review screen (`/review/[id]`):**
+   - Facts are grouped into Identity, Capacity, Willingness and Resilience. Each is labelled "Not verified · uploaded statement" and shows the statement rows behind it.
+   - An "Uploaded statement" card shows the file name, the period it covers and the file's sha256.
+   - Blind spots are listed.
+   - An "Experimental score" card, reviewers only:
+     - closed until the reviewer opens it
+     - the score (0 to 1, "isn't a chance of default")
+     - the three features that moved it most, against the training median
+     - what the model learned from and how it did on unseen loans
+     - that amounts aren't converted
+     - a provenance line: model id and sha256, the statement file's sha256, the as-of date and when it was computed
+     - when there's no score, the reason
+   - The decision panel allows one decision per application. Decisions are append-only: no undo, and corrections aren't built.
+4. **Decision page (`/apply/[id]`):** polls every 3 s until a decision is logged, then shows:
+   - approved: the terms, with "Accept offer" and "Talk to someone first"
+   - declined: the reason, what would change it, "Check again in 3 months" and "Ask a person to review"
+
+   These four buttons only record the request. Nothing acts on them yet.
+
+**Sample mode** is always on while the backend serves fixtures. It shows a "Demo · sample data" label, prefills the applicant, offers two sample statements on the upload step, adds "Reset sample data" to the review screen, and seeds 4 applications.
+
+**History:**
+- PR #1 made every prototype button work, including a simulated bank connection.
+- PR #2 cut the scope down to the CSV upload.
+- Both are merged.
+- The `model-integration` branch (issue #4) adds the experimental score, and the rewrite of this file into the start-here document.
+
+## Where things live
+
+| Path | What |
 |---|---|
-| `design/Main.dc.html` | Borrower flow, one centred column (max 520px) |
-| `design/Lender.dc.html` | Lender review screen, queue plus application detail |
+| `backend/src/contract.ts` | API types; the frontend imports them type-only |
+| `backend/src/statement.ts` | CSV parser, facts and blind spots |
+| `backend/src/store.ts` | in-memory state, sealing, decision rules |
+| `backend/src/app.ts` | HTTP routes |
+| `backend/src/fixtures.ts` | all sample data; sample statements are generated as CSV |
+| `backend/config/product.json` | brand, locale, pricing, minimum statement months, decline reasons |
+| `backend/src/experimental.ts` | the experimental score: the notebook's features, ported, and the scoring |
+| `backend/config/experimental-model.json` | the model's medians, scaler, coefficients and test results; written by `model/export.py` |
+| `model/export.py` | rebuilds the notebook's model, checks it against the notebook's printed results, writes the file above and `backend/src/experimental.parity.json` |
+| `frontend/src/components/lender/ExperimentalScoreCard.tsx` | the score card; its view model is in `frontend/src/lib/views.ts` |
+| `frontend/src/lib/api.ts`, `actions.ts` | server-side reads, and a Server Action for every write |
+| `frontend/src/lib/views.ts`, `labels.ts`, `format.ts` | view models, UI wording for codes, formatting |
+| `frontend/src/components/borrower/flow.ts` | borrower state machine |
+| `frontend/src/app/review/[id]/page.tsx` | review detail page |
 
-Both are Claude Design component files: markup inside `<x-dc>`, with screen
-logic in the `class Component extends DCLogic` script at the bottom. The
-`renderVals()` method holds all sample data and every state transition, so it
-is the most useful part to read.
+## CSV rules (`backend/src/statement.ts`)
 
-## 3. Suggested stack
+- **Columns:** header names are case-insensitive and a few aliases work.
+  - Date: `YYYY-MM-DD` or `YYYY/MM/DD` only
+  - Description
+  - Amount (signed), or Debit and Credit instead
+  - Balance (optional)
+- **Rejected with a message the applicant can act on:**
+  - wrong headers
+  - an unreadable date or amount (the message gives the row number)
+  - no rows, or more than 5,000
+  - less than 3 months (set in config)
+  - PDFs and files over 512 KB (checked in the browser)
+- **Facts produced:**
+  - average money in per month
+  - the main regular deposit, if one recurring deposit makes up at least half the money in
+  - average left over each month
+  - rent, found by "rent" or "landlord" in the description and counted over full calendar months
+  - overdraft and NSF fees, found by keyword
+  - with a Balance column only: lowest balance, days below zero, ending balance
+- **Blind spots:**
+  - always: whether the statement is complete, whose account it is, other banks, cash income
+  - when they apply: housing costs (no rent found), where the income comes from (no main deposit), balances over time (no Balance column)
 
-A default, not a requirement. Change it if there is a reason to.
+## Decisions not obvious from the code
 
-- Next.js (App Router) with TypeScript
-- Routes: `/apply` (borrower flow), `/review` and `/review/[id]` (lender)
-- Plain CSS modules or Tailwind, with the tokens in section 6 as CSS variables
-- Borrower flow as an explicit state machine (a reducer is enough)
-- A typed fixtures module for all sample data, behind the same interfaces the
-  real API will use, so swapping in real data changes no components
+- **No hard-coded values in components** (the user's instruction). Sample data comes from the API and product values from config; components hold only UI wording.
+- **Sample applications go through the same CSV parser** as a real upload, so they can't drift from real behaviour.
+- **Strings are formatted on the server**, in en-CA and America/Toronto time, so times read like "8:21 p.m.". Client components get preformatted view models.
+- **Pricing is illustrative:** 24.9% APR, 18 months, a $3,000 starter limit, rising to $6,000 after 6 on-time payments. Config validation refuses an APR of 35% or more, the criminal rate cap.
+- **How rule 2's "shown separately" is met:** facts that aren't verified stay in their category but carry a "not verified" badge and icon, and the statement card says nothing is verified.
+- **The backend re-checks every rule** the UI checks.
+- **The experimental score:**
+  - **When it's computed:** when the record is sealed, from the whole statement, as of the day after its last row. The newest 30-day period starts there.
+  - **Where it's stored:** on the evidence record, but outside its hash, like blind spots. It names the model's sha256 and the statement file's sha256, so it can be traced and recomputed.
+  - **Who sees it:** only `/review/[id]` reads the evidence record, and a test checks that no borrower response contains the score. The API has no sign-in yet, so this is enforced by screen, not by access.
+  - **When it isn't computed:** no Balance column, fewer than 5 transactions in the 180 days, or a 30-day period with no transactions. That last rule matters because the model counts an empty period as no money moving, so a short statement would look like a quiet account.
+  - **The notebook's exact model:** `model/export.py` reproduces it, all seven printed results. To do that it keeps the notebook's default sort, which can shuffle same-day transactions. The backend keeps file order, so a day's last balance really is its end-of-day balance. Only one feature differs: the typical end-of-day balance over the last 90 days.
+  - **Amounts:** CAD amounts go in unconverted and are read as if they were CZK, as the notebook would read them. The card says so.
 
-## 4. Borrower flow (`/apply`)
+## Working with this user
 
-Steps, in order. Progress bar shows 4 steps; Back is available where noted.
+- **Progress means working, clickable flows**, not scaffolding. When building one step of something, say up front what will and won't work.
+- **Ask before changing the product rules.** That's how "person decides" was chosen.
+- **They usually have `npm run dev` running on :3000 and :4000.**
+  - Test on other ports: start the backend with `PORT=4100`, and the frontend with `API_BASE_URL=http://localhost:4100 npx next start -p 3100`.
+  - Never kill their processes, and tell them when their dev server needs a restart.
+- **One branch and PR per change**, and commit only when asked.
+- **`gh` isn't installed.** Push the branch and give prefilled github.com links for issues and PRs. The repo is `lukezhang01/evidence-lender` and it's public.
+- **Never commit `Berka_Cashflow_PD_Colab.ipynb`.** It's theirs and untracked.
+- **`lending-handoff/` is still tracked.** They plan to delete it.
 
-| State | Purpose | Next | Back to |
-|---|---|---|---|
-| `start` | Pitch, amount picker ($1,000 / $2,000 / $4,000 / $6,000), how it works | `about` | — |
-| `about` | Full legal name (required), email, mobile | `consent` | `start` |
-| `consent` | What we read / what we can't do; connect bank | `bank` or `manual` | `about` |
-| `manual` | Alternatives: payroll connection, statement upload, employer confirmation | `bank` | `consent` |
-| `bank` | Searchable bank list | `connecting` | `consent` |
-| `connecting` | Progress while data is read | `found` (automatic) | — |
-| `found` | Shows the borrower exactly what the reviewer will see; optional note or upload; "something looks wrong" note | `decision` | `bank` |
-| `decision` | Approved or declined, with reasons | — | — |
+## Gotchas
 
-Rules carried by the design:
+- **Next.js 16.4:**
+  - `params` is a Promise
+  - `error.tsx` receives `retry`, not `reset`
+  - Server Actions call `refresh()` from `next/cache`
+  - `connection()` keeps data pages out of prerendering
 
-- The consent screen states what is read and what is never possible (move
-  money, see the password, read after disconnect). Final wording depends on
-  the consent rules of the data provider and of Canada's consumer-driven
-  banking framework once its regulations are in force.
-- `found` uses the same facts as the reviewer screen. The borrower can flag
-  errors before submitting; that note travels with the application.
-- An upload on `found` is labelled as checked by a person and weighted less.
-- **Approved** shows: amount, term, monthly payment, rate, total cost of
-  borrowing, the step-up path, and "why this amount" reasons tagged Helps /
-  Holds back. If the request exceeds the offer, say so and show the path.
-- **Declined** shows: the main reasons (numbered, plain language), what would
-  change the outcome, an opt-in re-check in 3 months, and a way to ask a
-  person to review. It states that no credit score was used.
-- The prototype's "outcome" switch (approved/declined) is demo-only. In the
-  product the decision comes from the review.
+  Read `node_modules/next/dist/docs/` before using a Next API.
+- **Stale styles in dev:** after classes were added to an existing CSS module, the dev server kept serving the old class names until it was restarted.
+- **Upload size:** Server Actions run one at a time, and the 512 KB browser cap keeps uploads under the action body limit.
+- **No browser tests in the repo.** Earlier checks drove headless Chrome over the DevTools protocol from a throwaway script. Playwright would be the lasting version.
+- **Commands,** all from the repo root: `npm test` (46 backend tests and 5 frontend), `npm run typecheck`, `npm run lint`, `npm run build`.
 
-## 5. Lender review (`/review`)
+## The notebook (`Berka_Cashflow_PD_Colab.ipynb`)
 
-Layout: queue on the left; application detail and decision panel on the right.
-Wraps to one column on narrow screens.
+- **What it is:** the user's course proof of concept (CSC491 A4). It trains a default-risk classifier on the historical Czech Berka dataset (1990s, CZK), using cash-flow features from the 180 days before each loan. Its author says it is not real underwriting.
+- **Its input:** a single statement with date, amount (positive), balance and type (PRIJEM for money in; VYDAJ or VYBER for money out).
+- **How it relates to the app:** the app's CSV maps onto that input, with the sign of the amount giving the type.
+- **How it's wired in:** as the reviewer-only experimental score (see "What exists" and "Decisions not obvious from the code"). To change the model, edit `model/export.py` and rerun it with `.venv/bin/python model/export.py`. Its checks against the notebook's printed results will then fail on purpose, so update `NOTEBOOK` in the script to the new results.
 
-**Queue items** show name, application id, amount, data status, and a status
-badge: Ready for review, Waiting on applicant, Can't verify at source, Decided.
+## Open questions and likely next steps
 
-**Application detail**, top to bottom:
-
-1. Header: name, id, amount requested, submitted time, chips (e.g. "No
-   Canadian bureau file", "Bank connected"), and the evidence record line:
-   record id, fact count, source count, sealed time, hash.
-2. Four evidence sections, always in this order: **Identity, Capacity,
-   Willingness, Resilience**. Each has the question it answers, a
-   verification badge, and facts. Each fact shows its statement and a
-   monospace provenance line. "Show source records" expands the raw records
-   (date, record, amount or result).
-3. **Not verified**: uploaded documents, with why they don't count and an
-   action to request a source-verified alternative.
-4. **Blind spots**: what the evidence can't see, each with a short note.
-
-**Decision panel:**
-
-- Suggested decision, terms, three metrics (monthly payment, payment as share
-  of pay, left over after payment), top reasons tagged Helps / Hurts, and the
-  model version and validation date.
-- Actions: Approve as suggested; Adjust terms (amount $500–$6,000);
-  Decline (choose the reason the applicant sees).
-- Adjust and Decline both require a written override reason. Show inline
-  errors and block submission until valid.
-- After a decision: a "Decision logged" summary with outcome, amount and
-  payment if any, whether the suggestion was followed, reviewer note, time,
-  reviewer, and evidence record reference. The prototype's Undo is demo-only;
-  real decisions are append-only.
-
-A queue item with only uploaded evidence gets **no suggestion**: the screen
-explains why and asks the reviewer to request a source connection.
-
-## 6. Design tokens
-
-| Token | Value | Use |
-|---|---|---|
-| Ground | `#F5F6F3` | Page background, inset panels |
-| Surface | `#FFFFFF` | Cards |
-| Ink | `#15201C` | Primary text |
-| Secondary text | `#4A5752` | Body copy |
-| Muted text | `#5F6B66` | Labels, provenance lines |
-| Border | `#DCE1DD` | Cards; row dividers `#E6EAE7`; inputs `#C9D1CC` |
-| Accent | `#0F5C4E` | Primary buttons, links, progress |
-| Accent tint | `#E3EFEB` / text `#0B4A3F` | Verified badges, "Helps" tags, selection |
-| Soft accent | `#EEF5F2` | "What we read", "What would change it" |
-| Warning tint | `#FBEFD9` / text `#7A4A06` | Unverified, "Hurts", "Not yet" |
-| Neutral tint | `#ECEEEB` / text `#3E4A45` | Neutral badges |
-| Error text | `#A12C1F` | Validation messages |
-
-- Type: IBM Plex Sans (400/500/600) for UI; IBM Plex Mono for provenance
-  lines, ids, dates and amounts in record tables.
-- Radii: 16px borrower card, 14px lender cards, 12px buttons and inset
-  panels, 10px inputs, 6px badges.
-- Controls: primary buttons 48–52px tall; nothing interactive under 44px.
-
-## 7. Data model sketch
-
-```ts
-type EvidenceCategory = 'identity' | 'capacity' | 'willingness' | 'resilience';
-type SourceType = 'bank_api' | 'payroll_api' | 'id_check' | 'upload' | 'derived';
-
-interface EvidenceItem {
-  id: string;
-  category: EvidenceCategory;
-  statement: string;          // plain-language fact shown in the UI
-  sourceType: SourceType;
-  sourceRef: string;          // e.g. connection id, vendor check id
-  retrievedAt: string;        // ISO timestamp
-  verified: boolean;          // false for uploads, always
-  derivedFrom?: string[];     // ids of items a derived fact was computed from
-  records: { date: string; description: string; value: string }[];
-}
-
-interface EvidenceRecord {
-  id: string;                 // e.g. ER-4821
-  applicationId: string;
-  items: EvidenceItem[];
-  sealedAt: string;
-  sha256: string;             // over the canonical JSON of items
-}
-
-interface Reason { direction: 'helps' | 'hurts'; text: string }
-
-interface Suggestion {
-  outcome: 'approve' | 'decline' | 'none';   // 'none' when nothing is verified
-  amount?: number;
-  termMonths?: number;
-  apr?: number;
-  reasons: Reason[];
-  modelVersion: string;
-}
-
-interface Decision {
-  applicationId: string;
-  evidenceRecordId: string;
-  outcome: 'approved' | 'declined';
-  amount?: number;
-  followedSuggestion: boolean;
-  overrideNote?: string;      // required when followedSuggestion is false
-  applicantReason?: string;   // required for declines
-  reviewerId: string;
-  decidedAt: string;
-}
-
-interface Application {
-  id: string;
-  applicant: { legalName: string; email: string; phone: string };
-  requestedAmount: number;
-  status: 'ready' | 'waiting' | 'unverifiable' | 'decided';
-  borrowerNote?: string;      // "something looks wrong" text
-  evidenceRecordId?: string;
-}
-```
-
-Note the design deliberately shows no protected characteristics (country of
-origin, age, etc.) on the review screen. Keep it that way.
-
-## 8. Demo-only, replace before real use
-
-- Every person, amount, date and record in `renderVals()` is sample data.
-- 24.9% APR, 18-month term and the $3,000 / $6,000 step-up are illustrative.
-- The 2.6-second "connecting" timer stands in for a real data connection.
-- The bank list is text only. Show only institutions your data provider
-  actually supports.
-- The evidence hash shown is a placeholder string.
-- Bracketed placeholders: `[Brand]`, `[Your pricing]`, `[ID vendor]`,
-  `[Employer]`, `[Landlord]`, `Model [version]`, `[date]`.
-- "Talk to someone" and "Ask a person to review" buttons have no behaviour.
-- The approved/declined Tweak and the Undo button.
-
-## 9. Decisions needed outside the front end
-
-These shape the code but aren't front-end decisions. Flag rather than guess.
-
-- **Bank data provider.** Canada's consumer-driven banking framework had not
-  launched when this was written; check its current status. Until then,
-  access goes through commercial aggregators.
-- **Identity verification vendor.**
-- **Underwriting model and its validation.** The UI assumes an explainable
-  model that returns reasons; a black-box score doesn't fit this design.
-- **Pricing and funding cost.** Canada's criminal interest rate cap is 35% APR
-  (since January 1, 2025); all-in pricing must fit under it.
-- **Legal review.** Provincial licensing, consent and privacy (PIPEDA, and
-  Quebec's Law 25 if lending there, which requires telling people when a
-  decision is fully automated), disclosure wording, decline notices.
-
-## 10. Suggested build order
-
-1. Tokens, layout shell and both routes with static fixtures.
-2. Borrower flow as a state machine, including validation and the declined path.
-3. Lender review: queue, evidence sections with expandable records, not-verified
-   and blind-spot sections.
-4. Decision panel with override validation and the logged-decision view.
-5. An API layer with the interfaces in section 7, backed by fixtures.
-6. Only then real integrations: data provider, ID check, persistence, auth.
+- **Real bank exports:** which banks' CSVs to support first, given MM/DD and DD/MM dates and different column names.
+- **Issue #3's text:** waiting on the user's edit on GitHub (`gh` isn't installed). The edit calls the cut scope creep, names bank APIs, and drops "or risk scores" from the out-of-scope list.
+- **The experimental score doesn't carry over to these statements.**
+  - On the four sample statements it gives 0.004 to 0.052. It ranks "Irregular pay, money tight" (overdrafts, late rent) as the *least* risky.
+  - The main reason is transaction count. Canadian statements have 105 to 169 transactions in 180 days, against a training median of 40, and more transactions lowers the score. Unconverted amounts push the other way.
+  - For the score to say anything, the model would need retraining on features that carry over, such as ratios instead of counts and amounts. That's the user's call.
+- **Sign-in and persistence:** anyone with an `/apply/<id>` link can see that outcome, anyone who can reach the backend can read evidence records (and so the experimental score), and all data resets when the backend restarts.
+- **Decision corrections:** not built. Rule 6 says they must be new entries, not edits.
+- **Decisions outside the front end,** still open from the original spec:
+  - the data provider and the ID vendor
+  - validating any scoring model
+  - final pricing under the 35% cap
+  - legal review: provincial licensing, PIPEDA, Quebec's Law 25 notice for automated decisions, and the wording of decline notices

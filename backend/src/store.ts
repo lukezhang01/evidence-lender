@@ -17,10 +17,11 @@ import type {
   Reviewer,
   StatementSummary,
 } from './contract.ts';
+import { type ExperimentalModel, experimentalScore, loadExperimentalModel } from './experimental.ts';
 import type { ApplicationSeed, DecisionFixture, SampleStatement } from './fixtures.ts';
 import { quote } from './pricing.ts';
 import { sealItems } from './seal.ts';
-import { coversMonths, parseStatement, StatementError, statementFacts } from './statement.ts';
+import { coversMonths, type ParsedStatement, parseStatement, StatementError, statementFacts } from './statement.ts';
 
 export interface StoreData {
   reviewers: Reviewer[];
@@ -33,6 +34,7 @@ export interface StoreData {
 
 export interface StoreOptions {
   now?: () => Date;
+  model?: ExperimentalModel; // defaults to config/experimental-model.json
 }
 
 // Thrown by store operations; the HTTP layer turns it into an error response.
@@ -52,6 +54,7 @@ export class ApiProblem extends Error {
 interface Draft {
   items: EvidenceItem[];
   blindSpots: BlindSpot[];
+  statement: ParsedStatement; // kept for the experimental score, computed when the record is sealed
 }
 
 interface State {
@@ -70,6 +73,7 @@ const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex
 // persistence later.
 export function createStore(config: ProductConfig, data: StoreData, options: StoreOptions = {}) {
   const now = () => (options.now ?? (() => new Date()))().toISOString();
+  const model = options.model ?? loadExperimentalModel();
   const money = new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.currency,
@@ -104,8 +108,12 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       hasBalance: statement.hasBalance,
       uploadedAt,
     };
-    return { items, blindSpots, summary };
+    return { items, blindSpots, summary, statement };
   }
+
+  // Reviewer only; never part of a borrower response.
+  const scoreFor = (statement: ParsedStatement, summary: StatementSummary, sealedAt: string) =>
+    experimentalScore(model, statement, { statementSha256: summary.fileSha256, computedAt: sealedAt });
 
   function load(): State {
     const state: State = { applications: new Map(), records: new Map(), drafts: new Map(), decisions: [] };
@@ -113,12 +121,13 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     for (const seed of data.applicationSeeds) {
       const sample = data.sampleStatements.find((s) => s.id === seed.statementId);
       if (!sample) throw new Error(`Seed ${seed.id} names an unknown sample statement ${seed.statementId}`);
-      const { items, blindSpots, summary } = readStatement(seed.id, sample.fileName, sample.csv, seed.uploadedAt);
+      const { items, blindSpots, summary, statement } = readStatement(seed.id, sample.fileName, sample.csv, seed.uploadedAt);
       const record: EvidenceRecord = {
         id: `ER-${seed.id}`,
         applicationId: seed.id,
         items,
         blindSpots,
+        experimentalScore: scoreFor(statement, summary, seed.submittedAt),
         sealedAt: seed.submittedAt,
         sha256: sealItems(items),
       };
@@ -234,7 +243,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       if (err instanceof StatementError) throw new ApiProblem(422, err.message, { statement: err.message });
       throw err;
     }
-    state.drafts.set(app.id, { items: read.items, blindSpots: read.blindSpots });
+    state.drafts.set(app.id, { items: read.items, blindSpots: read.blindSpots, statement: read.statement });
     app.statement = read.summary;
     return { application: app, items: read.items, blindSpots: read.blindSpots };
   }
@@ -246,8 +255,8 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     const fields: FieldErrors = {};
     const applicant = parseApplicant(b, fields);
     const requestedAmount = parseRequestedAmount(b, fields);
-    if (!draft) fields.statement = 'Upload your bank statement before you submit.';
-    if (Object.keys(fields).length || !draft) {
+    if (!draft || !app.statement) fields.statement = 'Upload your bank statement before you submit.';
+    if (Object.keys(fields).length || !draft || !app.statement) {
       throw new ApiProblem(422, 'This application isn’t ready to submit', fields);
     }
 
@@ -257,6 +266,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       applicationId: app.id,
       items: draft.items,
       blindSpots: draft.blindSpots,
+      experimentalScore: scoreFor(draft.statement, app.statement, sealedAt),
       sealedAt,
       sha256: sealItems(draft.items),
     };
