@@ -1,11 +1,3 @@
-.top {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
 .identity {
   display: flex;
   flex-direction: column;
@@ -21,12 +13,6 @@
 .meta {
   font-size: 14px;
   color: var(--color-text-secondary);
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .record {
@@ -46,19 +32,6 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.statusNote {
-  max-width: 60ch;
-  font-size: 15px;
-  line-height: 1.6;
 }
 
 .borrowerNote {

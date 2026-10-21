@@ -6,7 +6,7 @@
   "borrower": {
     "amountOptions": [1000, 2000, 4000, 6000],
     "defaultAmount": 4000,
-    "historyMonths": 12,
+    "minimumStatementMonths": 3,
     "recheckMonths": 3
   },
   "pricing": {
@@ -30,14 +30,14 @@
       "id": "income_not_confirmed",
       "label": "Income couldn’t be confirmed",
       "whatWouldChange": [
-        "Connect the bank account your pay goes into",
-        "Or connect your payroll account"
+        "A statement that shows your regular income",
+        "At least 3 months of transactions"
       ]
     },
     {
       "id": "identity_not_confirmed",
       "label": "Identity couldn’t be confirmed",
-      "whatWouldChange": ["Connect a bank account that is in your own name"]
+      "whatWouldChange": ["A statement from an account in your own name"]
     },
     {
       "id": "other",

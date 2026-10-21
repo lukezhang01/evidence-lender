@@ -328,27 +328,6 @@
   overflow-wrap: anywhere;
 }
 
-.tag {
-  flex: none;
-  padding: 3px 8px;
-  border-radius: var(--radius-badge);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.tagHelps {
-  composes: tag;
-  background: var(--color-accent-tint);
-  color: var(--color-accent-tint-text);
-}
-
-.tagHurts {
-  composes: tag;
-  background: var(--color-warn-tint);
-  color: var(--color-warn-text);
-}
-
 .reasonRow {
   display: flex;
   gap: 12px;

@@ -22,36 +22,53 @@ These are the point of the product. Never trade them away for convenience.
    record (hash over the canonical evidence). Corrections are new entries, not
    edits.
 
+## Current scope
+
+The only evidence is a bank statement the applicant uploads as a CSV. Bank or
+payroll connections, ID checks, the credit bureau, PDF statements and other
+document uploads are out of scope for now; `docs/HANDOFF.md` describes that
+fuller product, so treat those parts of it as later work.
+
+Because uploads are never verified (rule 2), no suggestion is made. A reviewer
+reads the facts and decides every application, and always writes why (rule 5).
+Every fact on screen is labelled as uploaded and not verified.
+
 ## Repo layout
 
 npm workspaces, Node 24+.
 
 - `frontend/`: Next.js App Router app.
-  - Routes: `/apply` (borrower flow, a reducer in `components/borrower/flow.ts`),
-    `/apply/[id]` (the applicant's decision, polls until a reviewer decides),
-    `/review` and `/review/[id]` (queue, evidence, decision panel).
+  - Routes: `/apply` (start, about you, upload statement, what we found; a
+    reducer in `components/borrower/flow.ts`), `/apply/[id]` (the applicant's
+    decision, polls until a reviewer decides), `/review` and `/review/[id]`
+    (queue, evidence by category, the uploaded statement, blind spots,
+    decision panel).
   - Reads go through `src/lib/api.ts` on the server; every write is a Server
     Action in `src/lib/actions.ts`. Client components get preformatted view
     models (`src/lib/views.ts`), so server and browser never format differently.
   - This Next.js version differs from older ones; read `frontend/AGENTS.md` and
     the bundled docs in `node_modules/next/dist/docs/` before using a Next API.
 - `backend/`: temporary fixture-backed JSON API (plain `node:http`, run with
-  Node's built-in TypeScript support, no build step). Real integrations replace
-  it in build order step 6.
-  - `src/contract.ts`: the API types (HANDOFF section 7 plus marked additions).
-    The frontend imports it with `import type` only.
-  - `src/fixtures.ts`: the one file with sample data.
-  - `config/product.json`: brand, locale, currency, time zone, amount options
-    and illustrative pricing. Validated at startup, including the 35% APR cap.
+  Node's built-in TypeScript support, no build step).
+  - `src/contract.ts`: the API types (HANDOFF section 7, narrowed to the
+    current scope, with marked additions). The frontend imports it with
+    `import type` only.
+  - `src/statement.ts`: parses the CSV (Date, Description, Amount or
+    Debit/Credit, optional Balance) and turns it into facts with the rows they
+    rest on, plus blind spots. Messages it throws are shown to the applicant.
+  - `src/fixtures.ts`: the one file with sample data. Sample statements are
+    generated there as CSV and loaded through the same parser as an upload.
+  - `config/product.json`: brand, locale, currency, time zone, amount options,
+    minimum statement length, decline reasons and illustrative pricing.
+    Validated at startup, including the 35% APR cap.
   - `src/store.ts`: in-memory state, reset from the fixtures on restart or
     `POST /api/demo/reset`. Seals evidence records at submit (sha256 over
-    canonical items), prices offers from config (`src/pricing.ts`), returns no
-    suggestion when nothing is verified, and enforces the decision rules
-    (override note, applicant-facing decline reason, one decision per
-    application) whatever the frontend sends.
-  - `src/app.ts`: the HTTP routes. `src/*.test.ts`: product rules on the
-    fixtures and the full borrower-to-reviewer flow over HTTP.
-- `docs/HANDOFF.md`: the spec. `docs/design/*.dc.html`: the design source.
+    canonical items), prices offers from config (`src/pricing.ts`), and
+    enforces the decision rules (written reason, amount range, decline reason
+    the applicant sees, one decision per application) whatever the frontend sends.
+  - `src/app.ts`: the HTTP routes. `src/*.test.ts`: the parser, product rules
+    on the fixtures, and the full borrower-to-reviewer flow over HTTP.
+- `docs/HANDOFF.md`: the original spec. `docs/design/*.dc.html`: the design source.
 
 ## Working conventions
 

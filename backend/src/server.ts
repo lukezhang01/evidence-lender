@@ -4,13 +4,11 @@ import { loadProductConfig } from './config.ts';
 import * as fixtures from './fixtures.ts';
 import { createStore } from './store.ts';
 
-// Temporary fixture-backed API. Replaced by real integrations in build order step 6.
+// Temporary fixture-backed API, in memory.
 const DEFAULT_PORT = 4000;
 const port = Number(process.env.PORT ?? DEFAULT_PORT);
 
-const store = createStore(loadProductConfig(), fixtures, {
-  connectionDelayMs: fixtures.sampleConnectionDelayMs,
-});
+const store = createStore(loadProductConfig(), fixtures);
 const server = createServer(createRequestHandler(store));
 
 server.listen(port, () => {

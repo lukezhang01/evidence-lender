@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { BorrowerFlow } from '@/components/borrower/BorrowerFlow';
 import { BorrowerShell } from '@/components/borrower/BorrowerShell';
-import { getConfig, listInstitutions } from '@/lib/api';
+import { getConfig } from '@/lib/api';
 import { createFormatters } from '@/lib/format';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ApplyPage() {
-  const [config, institutions] = await Promise.all([getConfig(), listInstitutions()]);
+  const config = await getConfig();
   const format = createFormatters(config);
 
   return (
@@ -18,11 +18,10 @@ export default async function ApplyPage() {
       <BorrowerFlow
         amounts={config.borrower.amountOptions.map((value) => ({ value, label: format.wholeMoney(value) }))}
         defaultAmount={config.borrower.defaultAmount}
-        historyMonths={config.borrower.historyMonths}
-        institutions={institutions}
+        minimumStatementMonths={config.borrower.minimumStatementMonths}
         sampleData={config.sampleData}
         sampleApplicant={config.demo?.sampleApplicant ?? null}
-        profiles={config.demo?.profiles ?? null}
+        sampleStatements={config.demo?.sampleStatements ?? null}
       />
     </BorrowerShell>
   );

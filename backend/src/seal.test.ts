@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { describe, it } from 'node:test';
-import { evidenceRecords } from './fixtures.ts';
+import type { EvidenceItem } from './contract.ts';
 import { canonicalJson, sealItems } from './seal.ts';
 
 describe('canonicalJson', () => {
@@ -24,7 +24,19 @@ describe('canonicalJson', () => {
 });
 
 describe('sealItems', () => {
-  const items = evidenceRecords[0]!.items;
+  const items: EvidenceItem[] = [
+    {
+      id: 'ev-1-rent',
+      category: 'willingness',
+      statement: 'Payments that look like rent, about $1,650, in 5 of 5 full months',
+      sourceType: 'upload',
+      sourceRef: 'upload-1',
+      sourceDetail: 's.csv: 5 payments mentioning rent or a landlord',
+      retrievedAt: '2026-10-21T00:00:00Z',
+      verified: false,
+      records: [{ date: '2026-10-01', description: 'E-TRANSFER RENT', amount: -1650, balance: 2000 }],
+    },
+  ];
 
   it('is sha256 over the canonical JSON of the items', () => {
     const expected = createHash('sha256').update(canonicalJson(items)).digest('hex');
@@ -33,7 +45,7 @@ describe('sealItems', () => {
   });
 
   it('changes when any fact changes', () => {
-    const edited = items.map((item, i) => (i === 0 ? { ...item, statement: `${item.statement}.` } : item));
+    const edited = [{ ...items[0]!, statement: `${items[0]!.statement}.` }];
     assert.notEqual(sealItems(edited), sealItems(items));
   });
 });

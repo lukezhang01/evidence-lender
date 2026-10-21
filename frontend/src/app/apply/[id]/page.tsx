@@ -65,8 +65,8 @@ function InReview({ view, format }: ScreenProps) {
         <span className={s.pillNeutral}>Submitted</span>
         <h1 className={s.title}>A person is reviewing your application</h1>
         <p className={s.leadLarge}>
-          They see exactly what you saw, plus any note you added. This page updates by itself when there’s a
-          decision.
+          They see exactly what you saw from your statement, plus any note you added. This page updates by itself
+          when there’s a decision.
         </p>
       </div>
       <div className={s.rows}>
@@ -92,7 +92,7 @@ function InReview({ view, format }: ScreenProps) {
 
 function Approved({ view, config, format }: ScreenProps) {
   if (view.outcome.kind !== 'approved') return null;
-  const { offer, reasons } = view.outcome;
+  const { offer } = view.outcome;
   const { application } = view;
   const { stepUp } = offer;
   const askLine =
@@ -109,7 +109,6 @@ function Approved({ view, config, format }: ScreenProps) {
     ['Total cost of borrowing', format.money(offer.totalCostOfBorrowing)],
   ];
   const done = requestsDone(view);
-  const bank = application.connection?.institutionName ?? 'bank';
 
   return (
     <div className={s.screenLoose}>
@@ -134,21 +133,6 @@ function Approved({ view, config, format }: ScreenProps) {
           <span className={s.caption}>Illustrative terms for this demo. [Your pricing] goes here.</span>
         )}
       </div>
-      {reasons.length > 0 && (
-        <div className={s.actionsLoose}>
-          <h2 className={s.sectionLabel}>Why this amount</h2>
-          <ul className={s.list}>
-            {reasons.map((r) => (
-              <li key={r.text} className={s.reasonRow}>
-                <span className={r.direction === 'helps' ? s.tagHelps : s.tagHurts}>
-                  {r.direction === 'helps' ? 'Helps' : 'Holds back'}
-                </span>
-                <span>{r.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       <div className={s.inset}>
         <span className={s.iconAccent}>
           <CalendarIcon size={18} />
@@ -162,7 +146,7 @@ function Approved({ view, config, format }: ScreenProps) {
         done={{
           ...(done.has('accept_offer')
             ? {
-                accept_offer: `Offer accepted. In the live product, the money goes to your ${bank} account and you get your agreement by email.`,
+                accept_offer: `Offer accepted. In the live product, you sign your agreement online and the money goes to your bank account.`,
               }
             : {}),
           ...(done.has('talk_first')
@@ -191,7 +175,7 @@ function Declined({ view, config, format }: ScreenProps) {
         </p>
       </div>
       <div className={s.actionsLoose}>
-        <h2 className={s.sectionLabel}>The main reasons</h2>
+        <h2 className={s.sectionLabel}>{reasons.length === 1 ? 'The main reason' : 'The main reasons'}</h2>
         <ol className={s.list}>
           {reasons.map((text, i) => (
             <li key={text} className={s.reasonRow}>
@@ -218,7 +202,8 @@ function Declined({ view, config, format }: ScreenProps) {
           </ul>
         )}
         <p className={s.softBody}>
-          With your permission, we’ll check again in {months} months. No new application needed.
+          With your permission, we’ll ask you for a new statement in {months} months and look again. No new
+          application needed.
         </p>
       </div>
       <OutcomeActions

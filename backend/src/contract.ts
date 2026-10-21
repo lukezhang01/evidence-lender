@@ -1,37 +1,35 @@
 // API contract between the backend and the frontend.
 //
-// Based on the data model sketch in docs/HANDOFF.md section 7. Fields the sketch
-// left out but the screens need are marked "Added"; fields reshaped are marked
-// "Changed". The frontend imports this file for types only, so it must not
-// import anything or contain runtime code.
+// Based on the data model sketch in docs/HANDOFF.md section 7, narrowed to the
+// current scope: the only evidence is a bank statement the applicant uploads as
+// a CSV. Uploads are never verified (rule 2), so no suggestion is made and a
+// person decides every application (rule 5). Fields the sketch left out are
+// marked "Added"; fields reshaped are marked "Changed". The frontend imports
+// this file for types only, so it must not import anything or contain runtime code.
 
 export type EvidenceCategory = 'identity' | 'capacity' | 'willingness' | 'resilience';
 
-// Added: 'bureau', so a credit-bureau lookup (including "no file found") carries
-// provenance like every other fact.
-export type SourceType = 'bank_api' | 'payroll_api' | 'id_check' | 'bureau' | 'upload' | 'derived';
+// Only uploads are in scope. Source connections (bank, payroll, ID check) add
+// their types here when they come back into scope.
+export type SourceType = 'upload';
 
-// Added: structured record values instead of preformatted strings, so the
-// frontend formats money in the configured locale and currency.
-export type RecordValue =
-  | { kind: 'money'; amount: number }
-  | { kind: 'outcome'; outcome: 'match' | 'no_match' | 'found' | 'not_found' };
-
+// Changed: one row of the uploaded statement, as parsed.
 export interface SourceRecord {
-  date: string; // ISO 8601: a calendar date (YYYY-MM-DD) or a date-time with offset
+  date: string; // YYYY-MM-DD
   description: string;
-  value: RecordValue;
+  amount: number; // money in is positive, money out negative
+  balance?: number; // when the file has a Balance column
 }
 
-// Added: the number behind a fact, so screens can show and compute with it
-// without parsing the statement. `note` is the borrower-facing context line.
+// Added: the number behind a fact, so screens can show it without parsing the
+// statement text. `note` is the short context line under a borrower tile.
 export type FigureName =
-  | 'monthly_net_pay'
-  | 'monthly_rent'
-  | 'monthly_other_bills'
+  | 'monthly_money_in'
   | 'monthly_left_over'
-  | 'savings'
-  | 'overdrafts_12m';
+  | 'monthly_rent'
+  | 'overdraft_fees'
+  | 'lowest_balance'
+  | 'ending_balance';
 
 export interface Figure {
   name: FigureName;
@@ -44,13 +42,12 @@ export interface EvidenceItem {
   category: EvidenceCategory;
   statement: string; // plain-language fact shown in the UI
   sourceType: SourceType;
-  sourceRef: string; // e.g. connection id, vendor check id
-  sourceDetail: string; // Added: readable part of the provenance line, e.g. "24 payroll deposits"
-  retrievedAt: string; // ISO timestamp (computed-at, for derived facts)
+  sourceRef: string; // the upload id
+  sourceDetail: string; // Added: readable part of the provenance line, e.g. "statement.csv: 31 deposits"
+  retrievedAt: string; // ISO timestamp of the upload
   verified: boolean; // false for uploads, always
-  derivedFrom?: string[]; // ids of items a derived fact was computed from
   figure?: Figure; // Added
-  records: SourceRecord[];
+  records: SourceRecord[]; // the statement rows the fact rests on
 }
 
 // Added: what the evidence can't see. Shown on every review screen.
@@ -68,11 +65,6 @@ export interface EvidenceRecord {
   sha256: string; // over the canonical JSON of items
 }
 
-export interface Reason {
-  direction: 'helps' | 'hurts';
-  text: string; // written to be sent to the applicant unchanged
-}
-
 // Added: the terms of a loan, priced from config.
 export interface Offer {
   amount: number;
@@ -83,35 +75,14 @@ export interface Offer {
   stepUp: { onTimePayments: number; limit: number };
 }
 
-// Added: the three numbers on the decision panel, with the facts they came from.
-export interface SuggestionMetrics {
-  monthlyPayment: number;
-  paymentShareOfPay?: number; // 0.049 for 4.9%
-  leftOverAfterPayment?: number;
-  derivedFrom: string[];
-}
-
-export interface Suggestion {
-  applicationId: string; // Added
-  outcome: 'approve' | 'decline' | 'none'; // 'none' when nothing is verified
-  noneReason?: 'nothing_submitted' | 'nothing_verified'; // Added
-  offer?: Offer; // Changed: section 7's amount, termMonths and apr, plus payment and cost
-  metrics?: SuggestionMetrics; // Added
-  reasons: Reason[];
-  whatWouldChange: string[]; // Added: shown to declined applicants
-  modelVersion: string;
-  modelValidatedAt: string | null; // Added
-  pricingIllustrative: boolean; // Added: true while pricing is demo config
-}
-
 export interface Decision {
   id: string; // Added
   applicationId: string;
   evidenceRecordId: string;
   outcome: 'approved' | 'declined';
   offer?: Offer; // Changed: section 7's amount, as the full terms the applicant was offered
-  followedSuggestion: boolean;
-  overrideNote?: string; // required when followedSuggestion is false
+  followedSuggestion: boolean; // always false while no suggestion is made
+  overrideNote?: string; // the reviewer's written reason; required while followedSuggestion is false
   applicantReason?: string; // required for declines
   declineReasonId?: string; // Added: which configured reason was chosen
   reviewerId: string;
@@ -120,31 +91,23 @@ export interface Decision {
 
 // Added: POST /api/applications/:id/decisions
 export interface DecisionRequest {
-  mode: 'follow' | 'adjust' | 'decline';
-  amount?: number; // adjust
-  declineReasonId?: string; // decline
-  overrideNote?: string; // required unless following the suggestion
+  outcome: 'approved' | 'declined';
+  amount?: number; // approvals
+  declineReasonId?: string; // declines
+  note: string; // always required
 }
 
-export type ApplicationStatus = 'draft' | 'ready' | 'waiting' | 'unverifiable' | 'decided';
+export type ApplicationStatus = 'draft' | 'ready' | 'decided';
 
-// Added: the "data status" shown in the queue.
-export type DataStatus = 'not_connected' | 'bank_connected' | 'payroll_pending' | 'uploads_only';
-
-// Added: header chips. Each one points at the evidence item that supports it,
-// so a chip is never a fact without a source.
-export type FlagCode = 'bank_connected' | 'no_bureau_file';
-
-export interface ApplicationFlag {
-  code: FlagCode;
-  evidenceItemId: string;
-}
-
-// Added: a reviewer asking the applicant for source-verified evidence.
-export interface SourceRequest {
-  kind: 'payroll' | 'bank_or_payroll';
-  requestedAt: string;
-  reviewerId: string;
+// Added: what the applicant uploaded, so screens can describe it.
+export interface StatementSummary {
+  fileName: string;
+  fileSha256: string; // hash of the file exactly as uploaded
+  transactionCount: number;
+  firstDate: string; // YYYY-MM-DD
+  lastDate: string; // YYYY-MM-DD
+  hasBalance: boolean;
+  uploadedAt: string;
 }
 
 // Added: what the applicant asked for after seeing the outcome.
@@ -165,11 +128,8 @@ export interface Application {
   applicant: Applicant;
   requestedAmount: number;
   status: ApplicationStatus;
-  dataStatus: DataStatus; // Added
   submittedAt?: string; // Added; absent while a draft
-  connection?: { institutionName: string | null; connectedAt: string }; // Added
-  flags: ApplicationFlag[]; // Added
-  sourceRequests: SourceRequest[]; // Added
+  statement?: StatementSummary; // Added
   borrowerRequests: BorrowerRequest[]; // Added
   borrowerNote?: string; // "something looks wrong" text
   evidenceRecordId?: string;
@@ -182,23 +142,23 @@ export interface Reviewer {
   initials: string;
 }
 
-// Added: banks the data provider can connect to. Sample list for now.
-export interface Institution {
-  id: string;
-  name: string;
-  kind: 'bank' | 'other'; // 'other' is the catch-all "another bank or credit union"
+// Added: POST /api/applications/:id/statement
+export interface StatementUpload {
+  fileName: string;
+  csv: string;
 }
 
-// Added: evidence a borrower has gathered but not yet submitted.
+// Added: facts read from an uploaded statement, before the applicant submits.
 export interface DraftEvidence {
   application: Application;
   items: EvidenceItem[];
+  blindSpots: BlindSpot[];
 }
 
 // Added: what the borrower sees after submitting.
 export type BorrowerOutcome =
   | { kind: 'in_review' }
-  | { kind: 'approved'; offer: Offer; reasons: Reason[] }
+  | { kind: 'approved'; offer: Offer }
   | { kind: 'declined'; reasons: string[]; whatWouldChange: string[] };
 
 export interface BorrowerView {
@@ -216,7 +176,7 @@ export interface ProductConfig {
   borrower: {
     amountOptions: number[];
     defaultAmount: number;
-    historyMonths: number; // how far back the bank connection reads
+    minimumStatementMonths: number; // how much history an upload must cover
     recheckMonths: number; // opt-in re-check after a decline
   };
   pricing: {
@@ -230,7 +190,7 @@ export interface ProductConfig {
   declineReasons: { id: string; label: string; whatWouldChange: string[] }[];
 }
 
-export interface SampleProfileSummary {
+export interface SampleStatementSummary {
   id: string;
   label: string;
 }
@@ -238,7 +198,7 @@ export interface SampleProfileSummary {
 // GET /api/config
 export interface ConfigResponse extends ProductConfig {
   sampleData: boolean; // true while the backend serves fixtures
-  demo: { sampleApplicant: Applicant; profiles: SampleProfileSummary[] } | null;
+  demo: { sampleApplicant: Applicant; sampleStatements: SampleStatementSummary[] } | null;
 }
 
 export type FieldErrors = Partial<Record<string, string>>;

@@ -1,22 +1,19 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { ChevronDownIcon, FileIcon, ShieldCheckIcon } from '@/components/ui/icons';
+import { ChevronDownIcon, FileIcon } from '@/components/ui/icons';
 import type { FoundView } from '@/lib/views';
 import s from './borrower.module.css';
 import own from './FoundStep.module.css';
 
 interface FoundStepProps {
   found: FoundView;
-  historyMonths: number;
-  uploading: boolean;
-  uploadError: string | null;
   noteOpen: boolean;
   borrowerNote: string;
   submitting: boolean;
   submitError: string | null;
-  onUpload: (file: File) => void;
+  onReplace: () => void;
   onToggleNote: () => void;
   onEditNote: (value: string) => void;
   onSubmit: () => void;
@@ -25,7 +22,6 @@ interface FoundStepProps {
 export function FoundStep(props: FoundStepProps) {
   const { found } = props;
   const [showAll, setShowAll] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const factsId = useId();
 
   return (
@@ -40,10 +36,8 @@ export function FoundStep(props: FoundStepProps) {
       </div>
 
       <div className={own.sourceBadge}>
-        <ShieldCheckIcon size={15} />
-        <span>
-          From {found.institutionName ?? 'your bank'} · read-only · last {props.historyMonths} months
-        </span>
+        <FileIcon size={15} />
+        <span>{found.statementLine}</span>
       </div>
 
       <ul className={own.tiles}>
@@ -73,7 +67,7 @@ export function FoundStep(props: FoundStepProps) {
             <section key={group.key} className={own.factGroup}>
               <h3 className={own.factGroupTitle}>{group.title}</h3>
               {group.facts.length === 0 ? (
-                <p className={own.empty}>Nothing in this section yet.</p>
+                <p className={own.empty}>Nothing in your statement for this yet.</p>
               ) : (
                 <ul className={s.list}>
                   {group.facts.map((f) => (
@@ -92,58 +86,23 @@ export function FoundStep(props: FoundStepProps) {
       <div className={own.cantSee}>
         <span className={own.cantSeeTitle}>Something we can’t see?</span>
         <span className={own.cantSeeBody}>
-          Income or debts at another bank, or cash income. Add a note or a document.
+          Income or debts at another bank, or cash income. Tell us in a note and the reviewer will read it.
         </span>
-        {found.uploads.map((u) => (
-          <div key={u.id} className={own.upload}>
-            <span className={own.uploadIcon}>
-              <FileIcon size={20} />
-            </span>
-            <span className={own.uploadText}>
-              <span className={own.uploadName}>{u.statement}</span>
-              <span className={own.uploadNote}>A person will check it. It counts for less than data from your bank.</span>
-              <span className={s.provenance}>{u.provenance}</span>
-            </span>
-          </div>
-        ))}
-        {props.uploadError && (
-          <p className={s.fieldError} role="alert">
-            {props.uploadError}
-          </p>
-        )}
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".pdf,image/*"
-          className={own.fileInput}
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (file) props.onUpload(file);
-          }}
-        />
-        <button
-          type="button"
-          className={s.smallButton}
-          disabled={props.uploading}
-          onClick={() => fileInput.current?.click()}
-        >
-          {props.uploading ? 'Adding…' : 'Add a document'}
+        <button type="button" className={s.smallButton} onClick={props.onReplace}>
+          Upload a different file
         </button>
       </div>
 
       {props.noteOpen && (
         <div className={s.field}>
           <label htmlFor="f-wrong" className={s.label}>
-            What looks wrong?
+            What looks wrong, or what should we know?
           </label>
           <textarea
             id="f-wrong"
             rows={3}
             className={s.textarea}
-            placeholder="My March pay was lower because I took a week of unpaid leave"
+            placeholder="My July pay was lower because I took a week of unpaid leave"
             value={props.borrowerNote}
             onChange={(e) => props.onEditNote(e.target.value)}
           />
