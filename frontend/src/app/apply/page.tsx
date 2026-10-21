@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BorrowerFlow } from '@/components/borrower/BorrowerFlow';
+import { ApplyForm } from '@/components/borrower/ApplyForm';
 import { BorrowerShell } from '@/components/borrower/BorrowerShell';
 import { getConfig } from '@/lib/api';
 import { createFormatters } from '@/lib/format';
@@ -12,12 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ApplyPage() {
   const config = await getConfig();
   const format = createFormatters(config);
+  const { min, max } = config.pricing.amountRange;
 
   return (
     <BorrowerShell brandName={config.brand.name}>
-      <BorrowerFlow
-        amounts={config.borrower.amountOptions.map((value) => ({ value, label: format.wholeMoney(value) }))}
-        defaultAmount={config.borrower.defaultAmount}
+      <ApplyForm
+        amountRange={{ min, max, label: `${format.wholeMoney(min)} to ${format.wholeMoney(max)}` }}
         minimumStatementMonths={config.borrower.minimumStatementMonths}
       />
     </BorrowerShell>

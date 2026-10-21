@@ -1,111 +1,85 @@
-// Borrower application flow as an explicit state machine. Pure: no I/O here.
-// The component runs side effects (uploading, submitting) and reports results
-// back as events. The only evidence in scope is an uploaded CSV statement.
-import type { Applicant } from '@evidence-lender/backend/contract';
-import type { FoundView } from '@/lib/views';
+// Borrower application form state. Pure: no I/O here. The component reads the
+// file and calls the Server Action, and reports results back as events. The
+// only evidence in scope is an uploaded CSV statement.
+import type { FieldErrors } from '@evidence-lender/backend/contract';
 
-export type Step = 'start' | 'about' | 'statement' | 'found';
+export type Field = 'requestedAmount' | 'legalName' | 'email';
 
-export interface FlowState {
-  step: Step;
-  amount: number;
-  applicant: Applicant;
-  nameError: boolean;
-  applicationId: string | null;
-  found: FoundView | null;
-  uploading: boolean;
-  uploadError: string | null;
-  noteOpen: boolean;
-  borrowerNote: string;
+export interface FormState {
+  values: Record<Field, string>;
+  file: { fileName: string; csv: string } | null;
+  errors: FieldErrors; // keyed by Field, or 'statement'
+  formError: string | null; // a problem no single field explains
+  applicationId: string | null; // the draft from an earlier try
   submitting: boolean;
-  submitError: string | null;
 }
 
-export type FlowEvent =
-  | { type: 'pick_amount'; amount: number }
-  | { type: 'start' }
-  | { type: 'edit_applicant'; field: keyof Applicant; value: string }
-  | { type: 'continue_about' }
-  | { type: 'upload_started' }
-  | { type: 'uploaded'; applicationId: string; found: FoundView }
-  | { type: 'upload_failed'; message: string; applicationId?: string | null }
-  | { type: 'toggle_note' }
-  | { type: 'edit_note'; value: string }
+export type FormEvent =
+  | { type: 'edit'; field: Field; value: string }
+  | { type: 'file_chosen'; fileName: string; csv: string }
+  | { type: 'file_rejected'; message: string }
+  | { type: 'invalid'; errors: FieldErrors }
   | { type: 'submit_started' }
-  | { type: 'submit_failed'; message: string }
-  | { type: 'back' };
+  | { type: 'submit_failed'; message: string; fields: FieldErrors; applicationId: string | null };
 
-// Where Back goes from each step. Steps not listed have no Back.
-export const backTo: Partial<Record<Step, Step>> = {
-  about: 'start',
-  statement: 'about',
-  found: 'statement',
+export const initialFormState: FormState = {
+  values: { requestedAmount: '', legalName: '', email: '' },
+  file: null,
+  errors: {},
+  formError: null,
+  applicationId: null,
+  submitting: false,
 };
 
-// Progress bar position, out of 4 (the decision is step 4, on its own page).
-export const progressOf: Record<Step, number> = {
-  start: 0,
-  about: 1,
-  statement: 2,
-  found: 3,
-};
-
-export function initialFlowState(input: { amount: number; applicant: Applicant }): FlowState {
-  return {
-    step: 'start',
-    amount: input.amount,
-    applicant: input.applicant,
-    nameError: false,
-    applicationId: null,
-    found: null,
-    uploading: false,
-    uploadError: null,
-    noteOpen: false,
-    borrowerNote: '',
-    submitting: false,
-    submitError: null,
-  };
+// Whole amounts only; "$4,000" and "4000" both read as 4000.
+export function parseAmount(value: string): number | null {
+  const digits = value.replace(/[$,\s]/g, '');
+  return /^\d+$/.test(digits) ? Number(digits) : null;
 }
 
-export function flowReducer(state: FlowState, event: FlowEvent): FlowState {
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The same checks the backend makes, so most mistakes show before anything is sent.
+export function validate(state: FormState, amount: { min: number; max: number; message: string }): FieldErrors {
+  const errors: FieldErrors = {};
+  const n = parseAmount(state.values.requestedAmount);
+  if (n === null || n < amount.min || n > amount.max) errors.requestedAmount = amount.message;
+  if (!state.values.legalName.trim()) errors.legalName = 'Enter your full legal name.';
+  if (!EMAIL.test(state.values.email.trim())) errors.email = 'Enter your email address, like name@example.com.';
+  if (!state.file) errors.statement = 'Choose your bank statement, saved as a CSV file.';
+  return errors;
+}
+
+export function flowReducer(state: FormState, event: FormEvent): FormState {
   switch (event.type) {
-    case 'pick_amount':
-      return state.step === 'start' ? { ...state, amount: event.amount } : state;
-    case 'start':
-      return state.step === 'start' ? { ...state, step: 'about' } : state;
-    case 'edit_applicant':
+    case 'edit':
+      if (state.submitting) return state;
       return {
         ...state,
-        applicant: { ...state.applicant, [event.field]: event.value },
-        nameError: event.field === 'legalName' ? false : state.nameError,
+        values: { ...state.values, [event.field]: event.value },
+        errors: { ...state.errors, [event.field]: undefined },
       };
-    case 'continue_about':
-      if (state.step !== 'about') return state;
-      if (!state.applicant.legalName.trim()) return { ...state, nameError: true };
-      return { ...state, step: 'statement' };
-    case 'upload_started':
-      return state.step === 'statement' && !state.uploading ? { ...state, uploading: true, uploadError: null } : state;
-    case 'uploaded':
-      if (state.step !== 'statement') return state;
-      return { ...state, step: 'found', uploading: false, applicationId: event.applicationId, found: event.found };
-    case 'upload_failed':
+    case 'file_chosen':
+      if (state.submitting) return state;
       return {
         ...state,
-        uploading: false,
-        uploadError: event.message,
+        file: { fileName: event.fileName, csv: event.csv },
+        errors: { ...state.errors, statement: undefined },
+      };
+    case 'file_rejected':
+      if (state.submitting) return state;
+      return { ...state, file: null, errors: { ...state.errors, statement: event.message } };
+    case 'invalid':
+      return { ...state, errors: event.errors, formError: null };
+    case 'submit_started':
+      return state.submitting ? state : { ...state, submitting: true, errors: {}, formError: null };
+    case 'submit_failed':
+      return {
+        ...state,
+        submitting: false,
+        errors: event.fields,
+        formError: Object.keys(event.fields).length ? null : event.message,
         applicationId: event.applicationId ?? state.applicationId,
       };
-    case 'toggle_note':
-      return { ...state, noteOpen: !state.noteOpen };
-    case 'edit_note':
-      return { ...state, borrowerNote: event.value };
-    case 'submit_started':
-      return state.step === 'found' && !state.submitting ? { ...state, submitting: true, submitError: null } : state;
-    case 'submit_failed':
-      return { ...state, submitting: false, submitError: event.message };
-    case 'back': {
-      const target = backTo[state.step];
-      return target && !state.submitting && !state.uploading ? { ...state, step: target, uploadError: null } : state;
-    }
   }
 }

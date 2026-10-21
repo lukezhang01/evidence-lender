@@ -27,17 +27,8 @@ export function validateProductConfig(c: ProductConfig): string[] {
   if (!isNonEmpty(c.currency)) problems.push('currency is required');
   if (!isNonEmpty(c.timeZone)) problems.push('timeZone is required');
 
-  const options = c.borrower?.amountOptions;
-  if (!Array.isArray(options) || options.length === 0 || !options.every(isPositive)) {
-    problems.push('borrower.amountOptions must be a non-empty list of positive amounts');
-  } else if (!options.includes(c.borrower.defaultAmount)) {
-    problems.push('borrower.defaultAmount must be one of borrower.amountOptions');
-  }
   if (!isWholePositive(c.borrower?.minimumStatementMonths)) {
     problems.push('borrower.minimumStatementMonths must be a positive whole number');
-  }
-  if (!isWholePositive(c.borrower?.recheckMonths)) {
-    problems.push('borrower.recheckMonths must be a positive whole number');
   }
 
   const reasons = c.declineReasons;
@@ -59,16 +50,9 @@ export function validateProductConfig(c: ProductConfig): string[] {
     problems.push(`pricing.apr must be above 0 and below ${CRIMINAL_RATE_CAP_APR}`);
   }
   if (!isWholePositive(p.termMonths)) problems.push('pricing.termMonths must be a positive whole number');
-  if (!isPositive(p.starterLimit)) problems.push('pricing.starterLimit must be positive');
-  if (!isWholePositive(p.stepUp?.onTimePayments)) {
-    problems.push('pricing.stepUp.onTimePayments must be a positive whole number');
-  }
-  if (!isPositive(p.stepUp?.limit) || p.stepUp.limit < p.starterLimit) {
-    problems.push('pricing.stepUp.limit must be at least pricing.starterLimit');
-  }
-  const range = p.reviewerAdjustRange;
-  if (!isPositive(range?.min) || !isPositive(range?.max) || range.min >= range.max) {
-    problems.push('pricing.reviewerAdjustRange needs 0 < min < max');
+  const range = p.amountRange;
+  if (!isWholePositive(range?.min) || !isWholePositive(range?.max) || range.min >= range.max) {
+    problems.push('pricing.amountRange needs whole amounts with 0 < min < max');
   }
   return problems;
 }

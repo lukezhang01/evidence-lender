@@ -58,12 +58,6 @@ export function createRequestHandler(store: Store) {
       handler: (ctx) => store.borrowerView(id(ctx)),
     },
     {
-      method: 'POST',
-      pattern: /^\/api\/applications\/(?<id>[^/]+)\/borrower-requests$/,
-      status: 201,
-      handler: (ctx) => store.borrowerRequest(id(ctx), ctx.body),
-    },
-    {
       method: 'GET',
       pattern: /^\/api\/evidence-records\/(?<id>[^/]+)$/,
       handler: (ctx) => store.getEvidenceRecord(id(ctx)),

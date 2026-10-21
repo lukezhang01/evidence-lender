@@ -15,8 +15,8 @@ describe('product config', () => {
     assert.equal(validateProductConfig(atCap).length, 1);
   });
 
-  it('requires the default amount to be one of the options', () => {
-    const bad = { ...config, borrower: { ...config.borrower, defaultAmount: 1 } };
+  it('requires an amount range with min below max', () => {
+    const bad = { ...config, pricing: { ...config.pricing, amountRange: { min: 6000, max: 500 } } };
     assert.equal(validateProductConfig(bad).length, 1);
   });
 });

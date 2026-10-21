@@ -24,26 +24,26 @@ developer's side.
 
 ## Try the whole loop
 
-1. On `/apply`, pick an amount and fill in the form.
-2. Upload a bank statement as a CSV with these columns:
+1. On `/apply`, type an amount, your name and email, and choose a bank
+   statement saved as a CSV with these columns:
    - Date (2026-03-27)
    - Amount: money in positive and out negative, or Debit and Credit columns,
      or unsigned amounts with a Type column (CREDIT or DEBIT)
-   - optionally, Description and Balance
+   - Balance (the credit score needs it) and Description, if the bank has them
 
    No file handy? Upload one from `samples/` (`npm run samples -w backend`
    rewrites them from the fixtures).
-3. Check what was read from it, add a note if something looks wrong, and submit.
-   The applicant lands on `/apply/<id>`, which waits for a reviewer.
-4. Open the application on `/review`, read the facts and approve (pick an
-   amount) or decline (pick the reason the applicant sees). Either way, write why.
-5. Back on `/apply/<id>`, the decision appears. Accept the offer, or opt into
-   a re-check after a decline.
+2. Submit. The applicant lands on `/apply/<id>`, which shows their credit score
+   and the suggested interest rate, and waits for a reviewer.
+3. Open the application on `/review`: the credit score comes first, then what
+   the statement shows and what it can't. Approve (type an amount) or decline
+   (pick the reason the applicant sees). Either way, write why.
+4. Back on `/apply/<id>`, the decision appears: the loan terms, or the reason.
 
 ## Checks
 
 ```sh
-npm test          # backend: CSV parser, product rules, sealing, config, experimental model, the full flow over HTTP; frontend: flow reducer
+npm test          # backend: CSV parser, product rules, sealing, config, the credit score model, the full flow over HTTP; frontend: the application form
 npm run typecheck
 npm run lint
 npm run build
@@ -52,9 +52,9 @@ npm run build
 ## Status
 
 Scope for now: the only evidence is an uploaded CSV bank statement, so nothing
-is verified at source, no suggestion is made and a person decides every
-application. Reviewers also see an experimental score from the course
-notebook's model (`model/export.py` rebuilds it), clearly labelled and never
-shown to the applicant. Bank connections, PDF statements, ID checks and automated
+is verified at source, no outcome is suggested and a person decides every
+application. The credit score comes from the course notebook's experimental
+model (`model/export.py` rebuilds it); the reviewer and the applicant both see
+it, clearly labelled. Bank connections, PDF statements, ID checks and automated
 suggestions are later work. There is no sign-in yet, so anyone with an
-`/apply/<id>` link can see that application's outcome.
+`/apply/<id>` link can see that application's score and outcome.

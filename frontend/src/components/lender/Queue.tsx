@@ -13,9 +13,7 @@ export function Queue({ applications, format }: QueueProps) {
   const items: QueueItem[] = applications.map((app) => ({
     id: app.id,
     name: app.applicant.legalName,
-    meta: app.statement
-      ? `${format.wholeMoney(app.requestedAmount)} · statement to ${format.day(app.statement.lastDate)}`
-      : format.wholeMoney(app.requestedAmount),
+    meta: `${format.wholeMoney(app.requestedAmount)} requested`,
     statusLabel: applicationStatus[app.status].label,
     tone: applicationStatus[app.status].tone,
   }));
@@ -30,10 +28,6 @@ export function Queue({ applications, format }: QueueProps) {
         <span className={styles.count}>{readyCount} ready</span>
       </div>
       <QueueList items={items} labelledBy="queue-heading" />
-      <p className={styles.footnote}>
-        Every fact is labelled with where it came from. Uploaded documents never outrank data from
-        the source.
-      </p>
     </>
   );
 }

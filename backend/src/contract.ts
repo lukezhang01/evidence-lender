@@ -2,7 +2,7 @@
 //
 // Based on the data model sketch in docs/HANDOFF.md section 7, narrowed to the
 // current scope: the only evidence is a bank statement the applicant uploads as
-// a CSV. Uploads are never verified (rule 2), so no suggestion is made and a
+// a CSV. Uploads are never verified (rule 2), so no outcome is suggested and a
 // person decides every application (rule 5). Fields the sketch left out are
 // marked "Added"; fields reshaped are marked "Changed". The frontend imports
 // this file for types only, so it must not import anything or contain runtime code.
@@ -57,8 +57,8 @@ export interface BlindSpot {
 }
 
 // Added: the experimental score from the course notebook's cash-flow model
-// (backend/src/experimental.ts). Reviewers only: nothing the applicant sees
-// carries it. It isn't a suggestion: it proposes no outcome, amount or reasons,
+// (backend/src/experimental.ts), shown as the credit score to the reviewer and,
+// once submitted, to the applicant. It proposes no outcome, amount or reasons,
 // and the reviewer still decides and writes why (rules 2 and 5).
 export type ModelFeatureName =
   | 'tx_count_180d'
@@ -140,7 +140,6 @@ export interface Offer {
   apr: number; // e.g. 0.249 for 24.9%
   monthlyPayment: number;
   totalCostOfBorrowing: number;
-  stepUp: { onTimePayments: number; limit: number };
 }
 
 export interface Decision {
@@ -178,17 +177,9 @@ export interface StatementSummary {
   uploadedAt: string;
 }
 
-// Added: what the applicant asked for after seeing the outcome.
-export interface BorrowerRequest {
-  kind: 'accept_offer' | 'talk_first' | 'recheck' | 'human_review';
-  requestedAt: string;
-  recheckOn?: string; // YYYY-MM-DD, for 'recheck'
-}
-
 export interface Applicant {
   legalName: string;
   email: string;
-  phone: string;
 }
 
 export interface Application {
@@ -198,8 +189,6 @@ export interface Application {
   status: ApplicationStatus;
   submittedAt?: string; // Added; absent while a draft
   statement?: StatementSummary; // Added
-  borrowerRequests: BorrowerRequest[]; // Added
-  borrowerNote?: string; // "something looks wrong" text
   evidenceRecordId?: string;
 }
 
@@ -223,7 +212,8 @@ export interface DraftEvidence {
   blindSpots: BlindSpot[];
 }
 
-// Added: what the borrower sees after submitting.
+// Added: what the borrower sees after submitting. The suggested interest rate
+// is pricing.apr, the same for everyone.
 export type BorrowerOutcome =
   | { kind: 'in_review' }
   | { kind: 'approved'; offer: Offer }
@@ -231,6 +221,7 @@ export type BorrowerOutcome =
 
 export interface BorrowerView {
   application: Application;
+  score: ExperimentalScore;
   outcome: BorrowerOutcome;
 }
 
@@ -242,18 +233,12 @@ export interface ProductConfig {
   currency: string; // ISO 4217, e.g. "CAD"
   timeZone: string; // IANA, e.g. "America/Toronto"
   borrower: {
-    amountOptions: number[];
-    defaultAmount: number;
     minimumStatementMonths: number; // how much history an upload must cover
-    recheckMonths: number; // opt-in re-check after a decline
   };
   pricing: {
-    illustrative: boolean;
-    apr: number;
+    apr: number; // the interest rate every applicant is shown, and every offer uses
     termMonths: number;
-    starterLimit: number;
-    stepUp: { onTimePayments: number; limit: number };
-    reviewerAdjustRange: { min: number; max: number };
+    amountRange: { min: number; max: number }; // what an applicant can ask for and a reviewer can approve
   };
   declineReasons: { id: string; label: string; whatWouldChange: string[] }[];
 }

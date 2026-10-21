@@ -71,9 +71,3 @@
   font-size: 13px;
   color: var(--color-text-secondary);
 }
-
-.footnote {
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--color-text-muted);
-}

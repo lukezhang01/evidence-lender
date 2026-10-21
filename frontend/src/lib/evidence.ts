@@ -13,18 +13,20 @@ export function shortHash(sha256: string) {
 }
 
 // Every provenance line carries source type, reference and time (rule 1).
-// `compact` drops the readable detail where space is tight; never the three parts.
-export function provenanceLine(item: EvidenceItem, format: Formatters, { compact = false } = {}) {
+export function provenanceLine(item: EvidenceItem, format: Formatters) {
   return [
     sourceTypeLabel[item.sourceType],
-    ...(compact ? [] : [item.sourceDetail]),
     `ref ${item.sourceRef}`,
     `uploaded ${format.dateTime(item.retrievedAt)}`,
   ].join(' · ');
 }
 
-// The experimental score's provenance: the model, the file it read and when (rule 1).
-export function scoreProvenanceLine(score: ExperimentalScore, format: Formatters) {
+// The score's provenance: the model, the file it read and when (rule 1).
+// `compact` keeps only the three parts rule 1 needs.
+export function scoreProvenanceLine(score: ExperimentalScore, format: Formatters, { compact = false } = {}) {
+  if (compact) {
+    return [experimentalSourceLabel, `ref ${score.model.id}`, `computed ${format.dateTime(score.computedAt)}`].join(' · ');
+  }
   return [
     experimentalSourceLabel,
     `ref ${score.model.id} sha256 ${shortHash(score.model.sha256)}`,

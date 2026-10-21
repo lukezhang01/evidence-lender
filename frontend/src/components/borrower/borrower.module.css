@@ -17,27 +17,11 @@
   gap: 8px;
 }
 
-.introLoose {
-  composes: intro;
-  gap: 12px;
-}
-
 .title {
   font-size: 30px;
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-
-.heading {
-  font-size: 24px;
-  line-height: 1.25;
-  font-weight: 600;
-}
-
-.title:focus,
-.heading:focus {
-  outline: none;
 }
 
 .lead {
@@ -46,65 +30,9 @@
   color: var(--color-text-secondary);
 }
 
-.leadLarge {
-  composes: lead;
-  font-size: 16px;
-}
-
 .sectionLabel {
   font-size: 15px;
   font-weight: 600;
-}
-
-/* ---- top of card: back + progress ---- */
-
-.top {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.back {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--control-min);
-  margin: -8px 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-accent);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.segments {
-  display: flex;
-  gap: 6px;
-}
-
-.segment {
-  flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--color-border);
-}
-
-.segmentDone {
-  composes: segment;
-  background: var(--color-accent);
-}
-
-.progressLabel {
-  font-size: 13px;
-  color: var(--color-text-muted);
 }
 
 /* ---- forms ---- */
@@ -135,15 +63,6 @@
   border-color: var(--color-error);
 }
 
-.textarea {
-  composes: input;
-  height: auto;
-  padding: 12px 14px;
-  font-size: 15px;
-  line-height: 1.5;
-  resize: vertical;
-}
-
 .fieldError {
   font-size: 13px;
   color: var(--color-error);
@@ -159,30 +78,6 @@
 }
 
 /* ---- buttons ---- */
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.actionsLoose {
-  composes: actions;
-  gap: 10px;
-}
-
-.linkButton {
-  min-height: var(--control-min);
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-accent);
-  font-size: 15px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 
 .smallButton {
   align-self: flex-start;
@@ -200,62 +95,7 @@
   opacity: 0.6;
 }
 
-.footnote {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
 /* ---- panels and lists ---- */
-
-.inset {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 14px 16px;
-  border-radius: var(--radius-inset);
-  background: var(--color-ground);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-}
-
-.confirm {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 16px;
-  border-radius: var(--radius-inset);
-  background: var(--color-accent-tint);
-  color: var(--color-accent-tint-text);
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.iconAccent {
-  flex: none;
-  display: flex;
-  padding-top: 2px;
-  color: var(--color-accent);
-}
-
-.iconMuted {
-  composes: iconAccent;
-  color: var(--color-text-muted);
-}
-
-.iconInherit {
-  composes: iconAccent;
-  color: inherit;
-}
-
-.checkRow {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  font-size: 14px;
-  line-height: 1.4;
-}
 
 .pill {
   align-self: flex-start;
@@ -328,71 +168,53 @@
   overflow-wrap: anywhere;
 }
 
-.reasonRow {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 @media (max-width: 480px) {
   .title {
     font-size: 26px;
   }
-
-  .heading {
-    font-size: 22px;
-  }
-}
-
-/* ---- decision ---- */
-
-.numberBadge {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-ground);
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.soft {
-  padding: 18px;
-  border-radius: var(--radius-inset);
-  background: var(--color-soft-accent);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.softTitle {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-accent-tint-text);
-}
-
-.softBody {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-accent-tint-text);
 }
 
 dl.rows,
 dl.rows dd {
   margin: 0;
+}
+
+.bullets {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---- credit score ---- */
+
+.score {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  border-radius: var(--radius-inset);
+  background: var(--color-ground);
+}
+
+.scoreHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.scoreValue {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.scoreNote {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }

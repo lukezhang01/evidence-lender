@@ -4,18 +4,12 @@
   "currency": "CAD",
   "timeZone": "America/Toronto",
   "borrower": {
-    "amountOptions": [1000, 2000, 4000, 6000],
-    "defaultAmount": 4000,
-    "minimumStatementMonths": 3,
-    "recheckMonths": 3
+    "minimumStatementMonths": 3
   },
   "pricing": {
-    "illustrative": true,
     "apr": 0.249,
     "termMonths": 18,
-    "starterLimit": 3000,
-    "stepUp": { "onTimePayments": 6, "limit": 6000 },
-    "reviewerAdjustRange": { "min": 500, "max": 6000 }
+    "amountRange": { "min": 500, "max": 6000 }
   },
   "declineReasons": [
     {

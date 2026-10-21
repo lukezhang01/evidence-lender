@@ -46,17 +46,6 @@
   font-weight: 500;
 }
 
-.reset {
-  min-height: var(--control-min);
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .avatar {
   width: 32px;
   height: 32px;

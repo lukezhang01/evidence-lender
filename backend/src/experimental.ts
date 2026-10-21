@@ -1,10 +1,10 @@
 // The experimental score: the course notebook's cash-flow model
-// (Berka_Cashflow_PD_Colab.ipynb), shown to reviewers only.
+// (Berka_Cashflow_PD_Colab.ipynb), shown as the credit score to the reviewer
+// and, once submitted, to the applicant.
 //
-// It isn't a suggestion. It proposes no outcome, amount or reasons, nothing the
-// applicant sees carries it, and the reviewer still decides and writes why
-// (rules 2 and 5). It was trained on 1990s Czech loans in koruna and hasn't
-// been tested on anyone here; the review screen says so next to it.
+// It proposes no outcome, amount or reasons, and the reviewer still decides and
+// writes why (rules 2 and 5). It was trained on 1990s Czech loans in koruna and
+// hasn't been tested on anyone here; both screens say so next to it.
 //
 // config/experimental-model.json is written by model/export.py, which rebuilds
 // the notebook's model and checks its results against the notebook's.

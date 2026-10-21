@@ -30,27 +30,29 @@ document uploads are out of scope for now. The original prototype spec
 (`git show d77c357:docs/HANDOFF.md`) describes that fuller product; treat those
 parts of it as later work.
 
-Because uploads are never verified (rule 2), no suggestion is made. A reviewer
-reads the facts and decides every application, and always writes why (rule 5).
-Every fact on screen is labelled as uploaded and not verified.
+Because uploads are never verified (rule 2), no outcome is suggested. A
+reviewer reads the facts and decides every application, and always writes why
+(rule 5). Every fact on screen is labelled as uploaded and not verified.
 
-One addition, decided 2026-10-21: the review screen shows an **experimental
-score** from the course notebook's model (`Berka_Cashflow_PD_Colab.ipynb`). It is
-for reviewers only and never appears in anything the applicant sees. It isn't a
-suggestion: it proposes no outcome, amount or reasons, and the decision panel
-ignores it. It always says what it was trained on and how little it was tested,
-and when a statement can't be scored it says why.
+The **credit score** is the course notebook's model (`Berka_Cashflow_PD_Colab.ipynb`),
+as its raw 0 to 1 score. Decided 2026-10-21: reviewers see it first on the review
+screen, and the applicant sees it as soon as they submit, next to the suggested
+interest rate (`pricing.apr`, the same for everyone). It proposes no outcome,
+amount or reasons, and the decision panel ignores it. Both screens say it comes
+from an experimental model, the review screen says what it was trained on and
+how little it was tested, and when a statement can't be scored both say why.
 
 ## Repo layout
 
 npm workspaces, Node 24+.
 
 - `frontend/`: Next.js App Router app.
-  - Routes: `/apply` (start, about you, upload statement, what we found; a
-    reducer in `components/borrower/flow.ts`), `/apply/[id]` (the applicant's
-    decision, polls until a reviewer decides), `/review` and `/review/[id]`
-    (queue, evidence by category, the uploaded statement, blind spots, the
-    experimental score, decision panel).
+  - Routes: `/apply` (one form: amount, name, email and the statement; its
+    state is a reducer in `components/borrower/flow.ts`), `/apply/[id]` (the
+    credit score, the suggested rate and then the decision; polls until a
+    reviewer decides), `/review` and `/review/[id]` (queue; the applicant and
+    amount, the credit score, what the statement shows, blind spots, decision
+    panel).
   - Reads go through `src/lib/api.ts` on the server; every write is a Server
     Action in `src/lib/actions.ts`. Client components get preformatted view
     models (`src/lib/views.ts`), so server and browser never format differently.
@@ -69,12 +71,13 @@ npm workspaces, Node 24+.
     generated there as CSV and loaded through the same parser as an upload.
     `npm run samples -w backend` writes them to `samples/` as files to upload
     by hand; a test checks the files still match.
-  - `config/product.json`: brand, locale, currency, time zone, amount options,
-    minimum statement length, decline reasons and illustrative pricing.
-    Validated at startup, including the 35% APR cap.
-  - `src/experimental.ts`: the experimental score. Ports the notebook's
-    features and scores them with `config/experimental-model.json`, which
-    `model/export.py` writes. Computed when a record is sealed; reviewer only.
+  - `config/product.json`: brand, locale, currency, time zone, minimum
+    statement length, pricing (the interest rate, term and the amounts an
+    applicant can ask for) and decline reasons. Validated at startup,
+    including the 35% APR cap.
+  - `src/experimental.ts`: the credit score. Ports the notebook's features and
+    scores them with `config/experimental-model.json`, which `model/export.py`
+    writes. Computed when a record is sealed.
   - `src/store.ts`: in-memory state, reset from the fixtures on restart.
     Seals evidence records at submit (sha256 over
     canonical items), prices offers from config (`src/pricing.ts`), and
@@ -91,6 +94,9 @@ npm workspaces, Node 24+.
 
 ## Working conventions
 
+- **Keep screens lean.** Show only what the person needs to understand or act:
+  no marketing copy, how-it-works panels, repeated explanations or buttons that
+  do nothing yet. If something isn't core, leave it out.
 - **The app is the product, never a demo.** This is an MVP and its scope will
   change, but no screen may present itself as a demo. No "demo" or "sample
   data" labels, sample-file buttons, prefilled forms, reset buttons, or links

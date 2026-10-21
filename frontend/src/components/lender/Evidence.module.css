@@ -1,4 +1,4 @@
-/* Evidence sections, Not verified and Blind spots (docs/design/Lender.dc.html). */
+/* Review cards: credit score, statement facts and blind spots (docs/design/Lender.dc.html). */
 
 .card {
   background: var(--color-surface);
@@ -85,12 +85,6 @@
   line-height: 1.45;
 }
 
-.explain {
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--color-text-secondary);
-}
-
 .note {
   font-size: 13px;
   line-height: 1.45;
@@ -108,72 +102,6 @@
 .empty {
   font-size: 14px;
   color: var(--color-text-muted);
-}
-
-.toggle {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--control-min);
-  margin: -6px 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-accent);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.chevronOpen {
-  transform: rotate(180deg);
-}
-
-.tableWrap {
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-input);
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  min-width: 480px;
-  border-collapse: collapse;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.table th {
-  padding: 9px 14px;
-  background: var(--color-ground);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  text-align: left;
-}
-
-.table td {
-  padding: 10px 14px;
-  border-top: 1px solid var(--color-divider);
-  vertical-align: top;
-}
-
-.table th:last-child,
-.table td:last-child {
-  text-align: right;
-}
-
-.mono {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-neutral-text);
-  white-space: nowrap;
-}
-
-.monoValue {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 @media (max-width: 600px) {

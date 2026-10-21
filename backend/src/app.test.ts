@@ -64,8 +64,7 @@ describe('HTTP API', () => {
     assert.equal((await post(`/api/applications/${app.id}/statement`, { fileName: s.fileName, csv: s.csv })).status, 201);
     const res = await post<Application>(`/api/applications/${app.id}/submit`, {
       applicant: fixtures.sampleApplicant,
-      requestedAmount: 4000,
-      borrowerNote: 'July pay was short.',
+      requestedAmount: 2750,
     });
     assert.equal(res.status, 200);
     return res.body;
@@ -87,10 +86,18 @@ describe('HTTP API', () => {
   });
 
   it('validates a new application', async () => {
-    const { status, body } = await post<ApiError>('/api/applications', { applicant: { legalName: ' ' }, requestedAmount: 5 });
+    const { status, body } = await post<ApiError>('/api/applications', {
+      applicant: { legalName: ' ', email: 'not an email' },
+      requestedAmount: 5,
+    });
     assert.equal(status, 422);
     assert.ok(body.error.fields?.legalName);
+    assert.ok(body.error.fields?.email);
     assert.ok(body.error.fields?.requestedAmount);
+    for (const requestedAmount of [config.pricing.amountRange.max + 1, 2500.5, '2500']) {
+      const res = await post<ApiError>('/api/applications', { applicant: fixtures.sampleApplicant, requestedAmount });
+      assert.ok(res.body.error.fields?.requestedAmount, String(requestedAmount));
+    }
   });
 
   it('turns an uploaded CSV into unverified facts, and explains a bad file', async () => {
@@ -120,7 +127,7 @@ describe('HTTP API', () => {
 
     const done = await submitted();
     assert.equal(done.status, 'ready');
-    assert.equal(done.borrowerNote, 'July pay was short.');
+    assert.equal(done.requestedAmount, 2750);
     assert.equal((await call<Application[]>('/api/applications')).body[0]?.id, done.id);
     const record = await call<EvidenceRecord>(`/api/evidence-records/${done.evidenceRecordId}`);
     assert.equal(record.body.sha256, sealItems(record.body.items));
@@ -132,22 +139,18 @@ describe('HTTP API', () => {
     assert.equal(score.statementSha256, done.statement?.fileSha256);
   });
 
-  it('keeps the experimental score out of everything the applicant sees', async () => {
+  it('shows the applicant the score sealed with their record once they submit', async () => {
     const app = await draft();
     const s = sample('steady');
-    const responses = [
-      await post(`/api/applications/${app.id}/statement`, { fileName: s.fileName, csv: s.csv }),
-      await post(`/api/applications/${app.id}/submit`, { applicant: fixtures.sampleApplicant, requestedAmount: 4000 }),
-      await call(`/api/applications/${app.id}`),
-      await call(`/api/applications/${app.id}/borrower-view`),
-      await call('/api/applications/4812/borrower-view'),
-      await call('/api/config'),
-    ];
-    const modelId = store.getEvidenceRecord('ER-4812')!.experimentalScore.model.id;
-    for (const { body } of responses) {
-      const json = JSON.stringify(body);
-      assert.ok(!json.includes('experimentalScore') && !json.includes(modelId), json.slice(0, 80));
-    }
+    const upload = await post(`/api/applications/${app.id}/statement`, { fileName: s.fileName, csv: s.csv });
+    assert.ok(!JSON.stringify(upload.body).includes('"score"'), 'no score before the record is sealed');
+    assert.equal((await call(`/api/applications/${app.id}/borrower-view`)).status, 404);
+
+    await post(`/api/applications/${app.id}/submit`, { applicant: fixtures.sampleApplicant, requestedAmount: 4000 });
+    const view = await call<BorrowerView>(`/api/applications/${app.id}/borrower-view`);
+    const record = await call<EvidenceRecord>(`/api/evidence-records/ER-${app.id}`);
+    assert.deepEqual(view.body.score, record.body.experimentalScore);
+    assert.equal(view.body.score.status, 'scored');
   });
 
   it('requires a written reason, a valid amount and an applicant-facing decline reason', async () => {
@@ -161,7 +164,7 @@ describe('HTTP API', () => {
     assert.equal(decline.body.error.fields?.note, undefined);
   });
 
-  it('logs one decision, shows it to the borrower and takes their follow-up', async () => {
+  it('logs one decision and shows it to the borrower', async () => {
     assert.equal((await call<BorrowerView>('/api/applications/4821/borrower-view')).body.outcome.kind, 'in_review');
     const logged = await post<Decision>('/api/applications/4821/decisions', {
       outcome: 'approved',
@@ -176,13 +179,10 @@ describe('HTTP API', () => {
     assert.equal((await post('/api/applications/4821/decisions', { outcome: 'declined', declineReasonId: 'other', note: 'x' })).status, 409);
     const view = await call<BorrowerView>('/api/applications/4821/borrower-view');
     assert.equal(view.body.outcome.kind === 'approved' && view.body.outcome.offer.amount, 2500);
-
-    assert.equal((await post('/api/applications/4821/borrower-requests', { kind: 'recheck' })).status, 409);
-    const accepted = await post<Application>('/api/applications/4821/borrower-requests', { kind: 'accept_offer' });
-    assert.equal(accepted.body.borrowerRequests[0]?.kind, 'accept_offer');
+    assert.equal(view.body.outcome.kind === 'approved' && view.body.outcome.offer.apr, config.pricing.apr);
   });
 
-  it('shows a declined borrower the chosen reason and lets them opt into a re-check', async () => {
+  it('shows a declined borrower the chosen reason', async () => {
     const app = await submitted('tight');
     await post(`/api/applications/${app.id}/decisions`, {
       outcome: 'declined',
@@ -192,12 +192,9 @@ describe('HTTP API', () => {
     const view = await call<BorrowerView>(`/api/applications/${app.id}/borrower-view`);
     const reason = config.declineReasons.find((r) => r.id === 'not_enough_left_over')!;
     assert.deepEqual(view.body.outcome, { kind: 'declined', reasons: [reason.label], whatWouldChange: reason.whatWouldChange });
-
-    const recheck = await post<Application>(`/api/applications/${app.id}/borrower-requests`, { kind: 'recheck' });
-    assert.equal(recheck.body.borrowerRequests[0]?.recheckOn, '2027-01-21');
   });
 
-  it('quotes amounts inside the reviewer range only', async () => {
+  it('quotes amounts inside the amount range only', async () => {
     const ok = await call<Offer>('/api/quote?amount=3500');
     assert.deepEqual(ok.body, quote(3500, config.pricing));
     assert.equal((await call('/api/quote?amount=100')).status, 422);

@@ -1,64 +1,24 @@
-// View models for client components, built on the server so every string is
+// View models for components, built on the server so every string is
 // formatted once, with the backend's locale, currency and time zone.
-import type { DraftEvidence, EvidenceCategory, ExperimentalScore } from '@evidence-lender/backend/contract';
-import { provenanceLine, scoreProvenanceLine, statementLine } from './evidence';
+import type { ExperimentalScore } from '@evidence-lender/backend/contract';
+import { scoreProvenanceLine } from './evidence';
 import type { Formatters } from './format';
-import { categories, type FeatureKind, figures, modelFeatures, notScoredReason } from './labels';
+import { type FeatureKind, modelFeatures, notScoredReason } from './labels';
 
-export interface FoundTile {
-  id: string;
-  label: string;
-  value: string;
-  note: string;
-  provenance: string;
+// ---- the credit score (the experimental model's) ---------------------------
+
+// The score as both screens show it, or why there isn't one (rule 3).
+export function scoreLabel(
+  score: ExperimentalScore,
+  format: Formatters,
+): { score: string; reason: null } | { score: null; reason: string } {
+  if (score.status === 'not_scored') {
+    const [have, need] = score.reason === 'no_balance' ? [0, 0] : [score.have, score.need];
+    return { score: null, reason: notScoredReason[score.reason](have, need) };
+  }
+  const shown = score.score < 0.001 ? 'Under 0.001' : score.score > 0.999 ? 'Over 0.999' : format.score(score.score);
+  return { score: shown, reason: null };
 }
-
-export interface FoundFact {
-  id: string;
-  statement: string;
-  provenance: string;
-}
-
-export interface FoundView {
-  statementLine: string;
-  tiles: FoundTile[];
-  factsByCategory: { key: EvidenceCategory; title: string; facts: FoundFact[] }[];
-  factCount: number;
-  blindSpots: { title: string; note: string }[];
-}
-
-// The borrower sees the same facts the reviewer will: tiles summarize the facts
-// that carry a figure, and the full list is one tap away.
-export function buildFoundView(draft: DraftEvidence, format: Formatters): FoundView {
-  const tiles = figures.flatMap((f) => {
-    const item = draft.items.find((i) => i.figure?.name === f.name);
-    if (!item?.figure) return [];
-    return [
-      {
-        id: item.id,
-        label: f.label,
-        value: f.kind === 'money' ? format.wholeMoney(item.figure.value) : format.count(item.figure.value),
-        note: item.figure.note,
-        provenance: provenanceLine(item, format, { compact: true }),
-      },
-    ];
-  });
-  return {
-    statementLine: draft.application.statement ? statementLine(draft.application.statement, format) : '',
-    tiles,
-    factsByCategory: categories.map((c) => ({
-      key: c.key,
-      title: c.title,
-      facts: draft.items
-        .filter((i) => i.category === c.key)
-        .map((i) => ({ id: i.id, statement: i.statement, provenance: provenanceLine(i, format) })),
-    })),
-    factCount: draft.items.length,
-    blindSpots: draft.blindSpots,
-  };
-}
-
-// ---- experimental score (reviewers only) ----------------------------------
 
 export interface ScoreMover {
   name: string;
@@ -68,18 +28,19 @@ export interface ScoreMover {
   direction: 'up' | 'down';
 }
 
-export type ExperimentalView =
+export type ScoreView =
   | { status: 'scored'; score: string; movers: ScoreMover[]; caveats: string[]; provenance: string }
   | { status: 'not_scored'; reason: string; provenance: string };
 
 const MOVERS_SHOWN = 3;
 
+// The reviewer's view: the score, what moved it and how far to trust it.
 // `currency` is the product's; the model's training currency comes with the score.
-export function buildExperimentalView(score: ExperimentalScore, format: Formatters, currency: string): ExperimentalView {
+export function buildScoreView(score: ExperimentalScore, format: Formatters, currency: string): ScoreView {
   const provenance = scoreProvenanceLine(score, format);
-  if (score.status === 'not_scored') {
-    const [have, need] = score.reason === 'no_balance' ? [0, 0] : [score.have, score.need];
-    return { status: 'not_scored', reason: notScoredReason[score.reason](have, need), provenance };
+  const label = scoreLabel(score, format);
+  if (score.status === 'not_scored' || label.score === null) {
+    return { status: 'not_scored', reason: label.reason ?? '', provenance };
   }
 
   const { training, test } = score.model;
@@ -112,11 +73,8 @@ export function buildExperimentalView(score: ExperimentalScore, format: Formatte
     });
   const [low, high] = test.rocAucInterval;
   const caveats = [
-    `It learned from ${format.count(training.finishedLoans)} finished loans at ${training.lender} (the ${training.dataset} data), made ${training.firstLoanYear} to ${training.lastLoanYear}. ${format.count(training.notRepaid)} weren’t repaid.`,
-    `On ${format.count(test.loans)} of those loans it hadn’t seen (${format.count(test.notRepaid)} not repaid), it scored a loan that wasn’t repaid above one that was ${format.percent(test.rocAuc)} of the time. With so few loans, the true figure could be anywhere from ${format.percent(low)} to ${format.percent(high)}; 50% would be a coin toss.`,
-    `Amounts aren’t converted: the model reads ${currency} amounts as if they were ${training.currency}.`,
-    'It hasn’t been tested on anyone who applies here.',
+    `Trained on ${format.count(training.finishedLoans)} loans at ${training.lender}, ${training.firstLoanYear} to ${training.lastLoanYear} (${training.dataset}); ${format.count(training.notRepaid)} weren’t repaid. It reads ${currency} amounts as ${training.currency}, unconverted.`,
+    `On ${format.count(test.loans)} loans it hadn’t seen, it ranked a loan that wasn’t repaid above one that was ${format.percent(test.rocAuc)} of the time (somewhere from ${format.percent(low)} to ${format.percent(high)}; 50% is a coin toss). It hasn’t been tested on anyone who applies here.`,
   ];
-  const shown = score.score < 0.001 ? 'Under 0.001' : score.score > 0.999 ? 'Over 0.999' : format.score(score.score);
-  return { status: 'scored', score: shown, movers, caveats, provenance };
+  return { status: 'scored', score: label.score, movers, caveats, provenance };
 }
