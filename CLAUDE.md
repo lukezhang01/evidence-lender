@@ -26,8 +26,9 @@ These are the point of the product. Never trade them away for convenience.
 
 The only evidence is a bank statement the applicant uploads as a CSV. Bank or
 payroll connections, ID checks, the credit bureau, PDF statements and other
-document uploads are out of scope for now; `docs/HANDOFF.md` describes that
-fuller product, so treat those parts of it as later work.
+document uploads are out of scope for now. The original prototype spec
+(`git show d77c357:docs/HANDOFF.md`) describes that fuller product; treat those
+parts of it as later work.
 
 Because uploads are never verified (rule 2), no suggestion is made. A reviewer
 reads the facts and decides every application, and always writes why (rule 5).
@@ -68,7 +69,8 @@ npm workspaces, Node 24+.
     the applicant sees, one decision per application) whatever the frontend sends.
   - `src/app.ts`: the HTTP routes. `src/*.test.ts`: the parser, product rules
     on the fixtures, and the full borrower-to-reviewer flow over HTTP.
-- `docs/HANDOFF.md`: the original spec. `docs/design/*.dc.html`: the design source.
+- `docs/HANDOFF.md`: goal, decisions, status and open questions (start here).
+  `docs/design/*.dc.html`: the design source.
 
 ## Working conventions
 

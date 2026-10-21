@@ -1,8 +1,8 @@
 # Evidence lender
 
 Borrower application and lender review screens for a consumer lender that
-underwrites from source-verified evidence instead of a credit score. The spec is
-in [docs/HANDOFF.md](docs/HANDOFF.md) and the product rules are in [CLAUDE.md](CLAUDE.md).
+underwrites from bank transactions instead of a credit score. Goals, decisions and
+status are in [docs/HANDOFF.md](docs/HANDOFF.md); the product rules are in [CLAUDE.md](CLAUDE.md).
 
 ## Run it
 
