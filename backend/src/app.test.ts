@@ -130,6 +130,29 @@ describe('HTTP API', () => {
     const record = await call<EvidenceRecord>(`/api/evidence-records/${done.evidenceRecordId}`);
     assert.equal(record.body.sha256, sealItems(record.body.items));
     assert.equal((await post(`/api/applications/${done.id}/submit`, {})).status, 409);
+
+    const score = record.body.experimentalScore;
+    assert.equal(score.status, 'scored');
+    assert.equal(score.computedAt, record.body.sealedAt);
+    assert.equal(score.statementSha256, done.statement?.fileSha256);
+  });
+
+  it('keeps the experimental score out of everything the applicant sees', async () => {
+    const app = await draft();
+    const s = sample('steady');
+    const responses = [
+      await post(`/api/applications/${app.id}/statement`, { fileName: s.fileName, csv: s.csv }),
+      await post(`/api/applications/${app.id}/submit`, { applicant: fixtures.sampleApplicant, requestedAmount: 4000 }),
+      await call(`/api/applications/${app.id}`),
+      await call(`/api/applications/${app.id}/borrower-view`),
+      await call('/api/applications/4812/borrower-view'),
+      await call('/api/config'),
+    ];
+    const modelId = store.getEvidenceRecord('ER-4812')!.experimentalScore.model.id;
+    for (const { body } of responses) {
+      const json = JSON.stringify(body);
+      assert.ok(!json.includes('experimentalScore') && !json.includes(modelId), json.slice(0, 80));
+    }
   });
 
   it('requires a written reason, a valid amount and an applicant-facing decline reason', async () => {

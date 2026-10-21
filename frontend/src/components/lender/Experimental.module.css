@@ -1,0 +1,78 @@
+/* The experimental score card. Shares the evidence cards' layout (Evidence.module.css). */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.body[hidden] {
+  display: none;
+}
+
+.scoreRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-input);
+  background: var(--color-ground);
+}
+
+.score {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.scoreNote {
+  flex: 1 1 260px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.subhead {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mover {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.moverHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.figures {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-neutral-text);
+  overflow-wrap: anywhere;
+}
+
+.caveats {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}

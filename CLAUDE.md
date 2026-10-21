@@ -34,6 +34,13 @@ Because uploads are never verified (rule 2), no suggestion is made. A reviewer
 reads the facts and decides every application, and always writes why (rule 5).
 Every fact on screen is labelled as uploaded and not verified.
 
+One addition, decided 2026-10-21: the review screen shows an **experimental
+score** from the course notebook's model (`Berka_Cashflow_PD_Colab.ipynb`). It is
+for reviewers only and never appears in anything the applicant sees. It isn't a
+suggestion: it proposes no outcome, amount or reasons, and the decision panel
+ignores it. It always says what it was trained on and how little it was tested,
+and when a statement can't be scored it says why.
+
 ## Repo layout
 
 npm workspaces, Node 24+.
@@ -42,8 +49,8 @@ npm workspaces, Node 24+.
   - Routes: `/apply` (start, about you, upload statement, what we found; a
     reducer in `components/borrower/flow.ts`), `/apply/[id]` (the applicant's
     decision, polls until a reviewer decides), `/review` and `/review/[id]`
-    (queue, evidence by category, the uploaded statement, blind spots,
-    decision panel).
+    (queue, evidence by category, the uploaded statement, blind spots, the
+    experimental score, decision panel).
   - Reads go through `src/lib/api.ts` on the server; every write is a Server
     Action in `src/lib/actions.ts`. Client components get preformatted view
     models (`src/lib/views.ts`), so server and browser never format differently.
@@ -62,6 +69,9 @@ npm workspaces, Node 24+.
   - `config/product.json`: brand, locale, currency, time zone, amount options,
     minimum statement length, decline reasons and illustrative pricing.
     Validated at startup, including the 35% APR cap.
+  - `src/experimental.ts`: the experimental score. Ports the notebook's
+    features and scores them with `config/experimental-model.json`, which
+    `model/export.py` writes. Computed when a record is sealed; reviewer only.
   - `src/store.ts`: in-memory state, reset from the fixtures on restart or
     `POST /api/demo/reset`. Seals evidence records at submit (sha256 over
     canonical items), prices offers from config (`src/pricing.ts`), and
@@ -69,6 +79,10 @@ npm workspaces, Node 24+.
     the applicant sees, one decision per application) whatever the frontend sends.
   - `src/app.ts`: the HTTP routes. `src/*.test.ts`: the parser, product rules
     on the fixtures, and the full borrower-to-reviewer flow over HTTP.
+- `model/export.py`: rebuilds the notebook's model (Python: pandas,
+  scikit-learn; the repo's `.venv` has them), stops if its results differ from
+  the notebook's, and writes the model file plus parity statements for the
+  TypeScript tests. Downloads the Berka data to `model/.data/` (ignored).
 - `docs/HANDOFF.md`: goal, decisions, status and open questions (start here).
   `docs/design/*.dc.html`: the design source.
 

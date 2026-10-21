@@ -16,6 +16,8 @@ export function createFormatters({ locale, currency, timeZone }: LocaleSettings)
   const money = new Intl.NumberFormat(locale, { style: 'currency', currency });
   const percent = new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const count = new Intl.NumberFormat(locale);
+  const decimal = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const score = new Intl.NumberFormat(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   const dateTime = new Intl.DateTimeFormat(locale, {
     timeZone,
     year: 'numeric',
@@ -34,6 +36,16 @@ export function createFormatters({ locale, currency, timeZone }: LocaleSettings)
     money: (amount: number) => money.format(amount),
     percent: (ratio: number) => percent.format(ratio),
     count: (n: number) => count.format(n),
+    decimal: (n: number) => decimal.format(n),
+    score: (n: number) => score.format(n),
+    // Money in a currency other than the product's, e.g. a model's training data.
+    wholeMoneyIn: (amount: number, otherCurrency: string) =>
+      new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: otherCurrency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount),
     dateTime: (iso: string) => dateTime.format(new Date(iso)),
     day: (isoDate: string) => day.format(calendar(isoDate)),
     longDay: (isoDate: string) => longDay.format(calendar(isoDate)),

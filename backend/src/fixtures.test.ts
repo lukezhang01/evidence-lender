@@ -56,6 +56,17 @@ describe('fixtures', () => {
     for (const r of records) assert.ok(r.blindSpots.length > 0, r.id);
   });
 
+  it('rule 1: every experimental score names its model, statement file and time', () => {
+    for (const r of records) {
+      const s = r.experimentalScore;
+      const app = store.getApplication(r.applicationId)!;
+      assert.ok(s.model.id.trim() && /^[0-9a-f]{64}$/.test(s.model.sha256), r.id);
+      assert.equal(s.statementSha256, app.statement?.fileSha256, r.id);
+      assert.equal(s.computedAt, r.sealedAt, r.id);
+      assert.equal(s.status, 'scored', `${r.id}: the sample statements cover six months with balances`);
+    }
+  });
+
   it('rules 5 and 6: decisions carry a written reason and point at the sealed record', () => {
     for (const d of fixtures.decisions) {
       const app = store.getApplication(d.applicationId);

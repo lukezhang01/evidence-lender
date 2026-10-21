@@ -22,17 +22,20 @@ built. The rest of it is out of scope for now.
 
 - The only evidence is a bank statement the applicant uploads as a CSV.
 - Out of scope until decided otherwise:
-  - bank or payroll connections
+  - bank APIs, aggregators and payroll connections
   - PDF statements and other document uploads
   - ID verification and the credit bureau
-  - automated suggestions or risk scores
+  - automated suggestions (a proposed outcome, amount or reasons)
   - other ways to verify (payroll, employer)
 - What follows from that:
   - Uploads are never verified (rule 2), so nothing produces a suggestion.
   - A reviewer reads the facts, then approves an amount or declines with a reason the applicant sees, and always writes why (rule 5).
   - The user chose this option over "suggest from the CSV" and "suggest after a person checks it".
+- **Added later the same day (issue #4):** a reviewer-only experimental score from the course notebook's model. It is not a suggestion and the applicant never sees it. The user chose this over showing the model's features as facts, shadow mode, and using the score as the main output. Issue #3 needs its text updated to match (see the open questions).
 
-## What exists (`main` at 10e6a8f)
+## What exists
+
+`main` is at 10e6a8f. The experimental score (item 3) is on the `model-integration` branch, for issue #4.
 
 Everything works end to end against a temporary, in-memory backend.
 
@@ -47,6 +50,14 @@ Everything works end to end against a temporary, in-memory backend.
    - Facts are grouped into Identity, Capacity, Willingness and Resilience. Each is labelled "Not verified · uploaded statement" and shows the statement rows behind it.
    - An "Uploaded statement" card shows the file name, the period it covers and the file's sha256.
    - Blind spots are listed.
+   - An "Experimental score" card, reviewers only:
+     - closed until the reviewer opens it
+     - the score (0 to 1, "isn't a chance of default")
+     - the three features that moved it most, against the training median
+     - what the model learned from and how it did on unseen loans
+     - that amounts aren't converted
+     - a provenance line: model id and sha256, the statement file's sha256, the as-of date and when it was computed
+     - when there's no score, the reason
    - The decision panel allows one decision per application. Decisions are append-only: no undo, and corrections aren't built.
 4. **Decision page (`/apply/[id]`):** polls every 3 s until a decision is logged, then shows:
    - approved: the terms, with "Accept offer" and "Talk to someone first"
@@ -60,6 +71,7 @@ Everything works end to end against a temporary, in-memory backend.
 - PR #1 made every prototype button work, including a simulated bank connection.
 - PR #2 cut the scope down to the CSV upload.
 - Both are merged.
+- The `model-integration` branch (issue #4) adds the experimental score, and the rewrite of this file into the start-here document.
 
 ## Where things live
 
@@ -71,6 +83,10 @@ Everything works end to end against a temporary, in-memory backend.
 | `backend/src/app.ts` | HTTP routes |
 | `backend/src/fixtures.ts` | all sample data; sample statements are generated as CSV |
 | `backend/config/product.json` | brand, locale, pricing, minimum statement months, decline reasons |
+| `backend/src/experimental.ts` | the experimental score: the notebook's features, ported, and the scoring |
+| `backend/config/experimental-model.json` | the model's medians, scaler, coefficients and test results; written by `model/export.py` |
+| `model/export.py` | rebuilds the notebook's model, checks it against the notebook's printed results, writes the file above and `backend/src/experimental.parity.json` |
+| `frontend/src/components/lender/ExperimentalScoreCard.tsx` | the score card; its view model is in `frontend/src/lib/views.ts` |
 | `frontend/src/lib/api.ts`, `actions.ts` | server-side reads, and a Server Action for every write |
 | `frontend/src/lib/views.ts`, `labels.ts`, `format.ts` | view models, UI wording for codes, formatting |
 | `frontend/src/components/borrower/flow.ts` | borrower state machine |
@@ -108,6 +124,13 @@ Everything works end to end against a temporary, in-memory backend.
 - **Pricing is illustrative:** 24.9% APR, 18 months, a $3,000 starter limit, rising to $6,000 after 6 on-time payments. Config validation refuses an APR of 35% or more, the criminal rate cap.
 - **How rule 2's "shown separately" is met:** facts that aren't verified stay in their category but carry a "not verified" badge and icon, and the statement card says nothing is verified.
 - **The backend re-checks every rule** the UI checks.
+- **The experimental score:**
+  - **When it's computed:** when the record is sealed, from the whole statement, as of the day after its last row. The newest 30-day period starts there.
+  - **Where it's stored:** on the evidence record, but outside its hash, like blind spots. It names the model's sha256 and the statement file's sha256, so it can be traced and recomputed.
+  - **Who sees it:** only `/review/[id]` reads the evidence record, and a test checks that no borrower response contains the score. The API has no sign-in yet, so this is enforced by screen, not by access.
+  - **When it isn't computed:** no Balance column, fewer than 5 transactions in the 180 days, or a 30-day period with no transactions. That last rule matters because the model counts an empty period as no money moving, so a short statement would look like a quiet account.
+  - **The notebook's exact model:** `model/export.py` reproduces it, all seven printed results. To do that it keeps the notebook's default sort, which can shuffle same-day transactions. The backend keeps file order, so a day's last balance really is its end-of-day balance. Only one feature differs: the typical end-of-day balance over the last 90 days.
+  - **Amounts:** CAD amounts go in unconverted and are read as if they were CZK, as the notebook would read them. The card says so.
 
 ## Working with this user
 
@@ -133,20 +156,24 @@ Everything works end to end against a temporary, in-memory backend.
 - **Stale styles in dev:** after classes were added to an existing CSS module, the dev server kept serving the old class names until it was restarted.
 - **Upload size:** Server Actions run one at a time, and the 512 KB browser cap keeps uploads under the action body limit.
 - **No browser tests in the repo.** Earlier checks drove headless Chrome over the DevTools protocol from a throwaway script. Playwright would be the lasting version.
-- **Commands,** all from the repo root: `npm test` (39 backend tests and 5 frontend), `npm run typecheck`, `npm run lint`, `npm run build`.
+- **Commands,** all from the repo root: `npm test` (46 backend tests and 5 frontend), `npm run typecheck`, `npm run lint`, `npm run build`.
 
 ## The notebook (`Berka_Cashflow_PD_Colab.ipynb`)
 
 - **What it is:** the user's course proof of concept (CSC491 A4). It trains a default-risk classifier on the historical Czech Berka dataset (1990s, CZK), using cash-flow features from the 180 days before each loan. Its author says it is not real underwriting.
 - **Its input:** a single statement with date, amount (positive), balance and type (PRIJEM for money in; VYDAJ or VYBER for money out).
 - **How it relates to the app:** the app's CSV maps onto that input, with the sign of the amount giving the type.
-- **Why it isn't wired in:** its score would be an automated suggestion, which the current scope rules out.
+- **How it's wired in:** as the reviewer-only experimental score (see "What exists" and "Decisions not obvious from the code"). To change the model, edit `model/export.py` and rerun it with `.venv/bin/python model/export.py`. Its checks against the notebook's printed results will then fail on purpose, so update `NOTEBOOK` in the script to the new results.
 
 ## Open questions and likely next steps
 
 - **Real bank exports:** which banks' CSVs to support first, given MM/DD and DD/MM dates and different column names.
-- **The notebook's model:** whether it should appear, and how, given rule 2. One option is a clearly labelled experimental aid for the reviewer that the applicant never sees. That's the user's call.
-- **Sign-in and persistence:** anyone with an `/apply/<id>` link can see that outcome, and all data resets when the backend restarts.
+- **Issue #3's text:** waiting on the user's edit on GitHub (`gh` isn't installed). The edit calls the cut scope creep, names bank APIs, and drops "or risk scores" from the out-of-scope list.
+- **The experimental score doesn't carry over to these statements.**
+  - On the four sample statements it gives 0.004 to 0.052. It ranks "Irregular pay, money tight" (overdrafts, late rent) as the *least* risky.
+  - The main reason is transaction count. Canadian statements have 105 to 169 transactions in 180 days, against a training median of 40, and more transactions lowers the score. Unconverted amounts push the other way.
+  - For the score to say anything, the model would need retraining on features that carry over, such as ratios instead of counts and amounts. That's the user's call.
+- **Sign-in and persistence:** anyone with an `/apply/<id>` link can see that outcome, anyone who can reach the backend can read evidence records (and so the experimental score), and all data resets when the backend restarts.
 - **Decision corrections:** not built. Rule 6 says they must be new entries, not edits.
 - **Decisions outside the front end,** still open from the original spec:
   - the data provider and the ID vendor

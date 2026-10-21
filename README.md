@@ -38,7 +38,7 @@ back. Every screen shows a "Demo · sample data" label while it does.
 ## Checks
 
 ```sh
-npm test          # backend: CSV parser, product rules, sealing, config, the full flow over HTTP; frontend: flow reducer
+npm test          # backend: CSV parser, product rules, sealing, config, experimental model, the full flow over HTTP; frontend: flow reducer
 npm run typecheck
 npm run lint
 npm run build
@@ -48,6 +48,8 @@ npm run build
 
 Scope for now: the only evidence is an uploaded CSV bank statement, so nothing
 is verified at source, no suggestion is made and a person decides every
-application. Bank connections, PDF statements, ID checks and automated
+application. Reviewers also see an experimental score from the course
+notebook's model (`model/export.py` rebuilds it), clearly labelled and never
+shown to the applicant. Bank connections, PDF statements, ID checks and automated
 suggestions are later work. There is no sign-in yet, so anyone with an
 `/apply/<id>` link can see that application's outcome.

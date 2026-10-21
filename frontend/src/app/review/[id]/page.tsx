@@ -6,6 +6,7 @@ import { BlindSpots } from '@/components/lender/BlindSpots';
 import { DecisionLogged } from '@/components/lender/DecisionLogged';
 import { DecisionPanel } from '@/components/lender/DecisionPanel';
 import { EvidenceSection, type SectionView } from '@/components/lender/EvidenceSection';
+import { ExperimentalScoreCard } from '@/components/lender/ExperimentalScoreCard';
 import { StatementCard } from '@/components/lender/StatementCard';
 import {
   getApplication,
@@ -18,6 +19,7 @@ import {
 import { countLabel, provenanceLine, shortHash, statementLine, summarizeRecord } from '@/lib/evidence';
 import { createFormatters, type Formatters } from '@/lib/format';
 import { categories } from '@/lib/labels';
+import { buildExperimentalView } from '@/lib/views';
 import styles from '../review.module.css';
 
 // Titles use the id, not the applicant's name, so names stay out of browser history.
@@ -61,6 +63,7 @@ export default async function ApplicationPage({ params }: PageProps<'/review/[id
           fileHash={{ short: shortHash(application.statement.fileSha256), full: application.statement.fileSha256 }}
         />
         <BlindSpots blindSpots={record.blindSpots} />
+        <ExperimentalScoreCard view={buildExperimentalView(record.experimentalScore, format, config.currency)} />
       </div>
       <div className={styles.side}>
         {decision ? (
