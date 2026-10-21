@@ -1,6 +1,6 @@
-import type { EvidenceItem, EvidenceRecord, StatementSummary } from '@evidence-lender/backend/contract';
+import type { EvidenceItem, EvidenceRecord, ExperimentalScore, StatementSummary } from '@evidence-lender/backend/contract';
 import type { Formatters } from './format';
-import { sourceTypeLabel } from './labels';
+import { experimentalSourceLabel, sourceTypeLabel } from './labels';
 
 // Facts are every sealed item. Sources are the distinct places they came from.
 export function summarizeRecord(record: EvidenceRecord) {
@@ -20,6 +20,17 @@ export function provenanceLine(item: EvidenceItem, format: Formatters, { compact
     ...(compact ? [] : [item.sourceDetail]),
     `ref ${item.sourceRef}`,
     `uploaded ${format.dateTime(item.retrievedAt)}`,
+  ].join(' · ');
+}
+
+// The experimental score's provenance: the model, the file it read and when (rule 1).
+export function scoreProvenanceLine(score: ExperimentalScore, format: Formatters) {
+  return [
+    experimentalSourceLabel,
+    `ref ${score.model.id} sha256 ${shortHash(score.model.sha256)}`,
+    `read file sha256 ${shortHash(score.statementSha256)}`,
+    ...(score.status === 'scored' ? [`as of ${format.day(score.asOf)}`] : []),
+    `computed ${format.dateTime(score.computedAt)}`,
   ].join(' · ');
 }
 

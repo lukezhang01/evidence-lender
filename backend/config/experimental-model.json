@@ -1,0 +1,169 @@
+{
+  "id": "berka-cashflow-lr",
+  "name": "Berka cash-flow default model",
+  "purpose": "Course proof of concept (CSC491 A4). Not real underwriting.",
+  "notebook": "Berka_Cashflow_PD_Colab.ipynb",
+  "featureSet": "B: Cash flow only",
+  "algorithm": "Logistic regression (median imputer, robust scaler, balanced class weights)",
+  "label": "Loan finished and repaid (status A) = 0; loan finished and not repaid (status B) = 1",
+  "windowDays": 180,
+  "minimumTransactions": 5,
+  "training": {
+    "dataset": "PKDD'99 Berka",
+    "lender": "a Czech bank",
+    "source": "https://github.com/jlacko/berka-dataset",
+    "currency": "CZK",
+    "firstLoanYear": 1993,
+    "lastLoanYear": 1997,
+    "finishedLoans": 233,
+    "notRepaid": 30,
+    "trainedOnLoans": 174,
+    "trainedOnNotRepaid": 22
+  },
+  "test": {
+    "loans": 59,
+    "notRepaid": 8,
+    "rocAuc": 0.7573529411764706,
+    "rocAucInterval": [
+      0.5806936274509804,
+      0.9117693303736589
+    ],
+    "prAuc": 0.41814096850861554,
+    "brier": 0.1768354885672393
+  },
+  "features": [
+    {
+      "name": "tx_count_180d",
+      "median": 40.0,
+      "center": 40.0,
+      "scale": 15.75,
+      "coefficient": -0.8770179159606175
+    },
+    {
+      "name": "history_days_180d",
+      "median": 171.0,
+      "center": 171.0,
+      "scale": 11.0,
+      "coefficient": -0.1584957245525613
+    },
+    {
+      "name": "observed_months_180d",
+      "median": 6.0,
+      "center": 6.0,
+      "scale": 1.0,
+      "coefficient": 0.6008978606470355
+    },
+    {
+      "name": "total_inflow_180d",
+      "median": 145036.35,
+      "center": 145036.35,
+      "scale": 147843.77499999997,
+      "coefficient": 0.6715928857744082
+    },
+    {
+      "name": "total_outflow_180d",
+      "median": 145239.5,
+      "center": 145239.5,
+      "scale": 151842.99999999997,
+      "coefficient": 0.5923097484285509
+    },
+    {
+      "name": "net_flow_180d",
+      "median": 1276.8500000000058,
+      "center": 1276.8500000000058,
+      "scale": 37859.0,
+      "coefficient": 0.2506162900445089
+    },
+    {
+      "name": "avg_monthly_inflow_180d",
+      "median": 24172.725,
+      "center": 24172.725,
+      "scale": 24640.629166666666,
+      "coefficient": 0.67159288577441
+    },
+    {
+      "name": "avg_monthly_outflow_180d",
+      "median": 24206.583333333336,
+      "center": 24206.583333333336,
+      "scale": 25307.16666666667,
+      "coefficient": 0.5923097484285509
+    },
+    {
+      "name": "avg_monthly_net_180d",
+      "median": 212.80833333333416,
+      "center": 212.80833333333416,
+      "scale": 6309.833333333334,
+      "coefficient": 0.2506162900445114
+    },
+    {
+      "name": "std_monthly_net_180d",
+      "median": 11893.9025199163,
+      "center": 11893.9025199163,
+      "scale": 14539.190495345689,
+      "coefficient": 0.693944429972425
+    },
+    {
+      "name": "income_cv_180d",
+      "median": 0.29064335217648424,
+      "center": 0.29064335217648424,
+      "scale": 0.5738528604104547,
+      "coefficient": 0.1455384631359036
+    },
+    {
+      "name": "inflow_months_180d",
+      "median": 6.0,
+      "center": 6.0,
+      "scale": 1.0,
+      "coefficient": 0.7160721544509331
+    },
+    {
+      "name": "median_tx_balance_180d",
+      "median": 41064.2,
+      "center": 41064.2,
+      "scale": 21152.550000000003,
+      "coefficient": -2.011546276754175
+    },
+    {
+      "name": "min_tx_balance_180d",
+      "median": 17324.1,
+      "center": 17324.1,
+      "scale": 15250.474999999999,
+      "coefficient": -0.6155341836036
+    },
+    {
+      "name": "median_daily_observed_balance_90d",
+      "median": 39817.275,
+      "center": 39817.275,
+      "scale": 23950.9875,
+      "coefficient": -0.3622107080800803
+    },
+    {
+      "name": "recent_large_inflow_share_30d",
+      "median": 0.0,
+      "center": 0.0,
+      "scale": 0.9869787286156061,
+      "coefficient": -0.4985656348923706
+    },
+    {
+      "name": "negative_balance_tx_share_180d",
+      "median": 0.0,
+      "center": 0.0,
+      "scale": 1.0,
+      "coefficient": 0.1405047127467045
+    },
+    {
+      "name": "median_inflow_size_180d",
+      "median": 5792.5,
+      "center": 5792.5,
+      "scale": 12421.3375,
+      "coefficient": -1.511653337096435
+    }
+  ],
+  "intercept": -1.2221401879025864,
+  "software": {
+    "python": "3.12.13",
+    "scikitLearn": "1.9.1",
+    "pandas": "3.0.6",
+    "numpy": "2.5.4"
+  }
+}
