@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import * as fixtures from './fixtures.ts';
 
-const { applications, evidenceRecords, suggestions, decisions, reviewers } = fixtures;
+const { applications, evidenceRecords, suggestions, decisions, reviewers, sampleProfiles } = fixtures;
 const allItems = evidenceRecords.flatMap((r) => r.items);
+const profileItems = sampleProfiles.flatMap((p) => p.items);
 const isTimestamp = (s: string) => !Number.isNaN(Date.parse(s));
 
 describe('fixtures', () => {
@@ -14,6 +15,9 @@ describe('fixtures', () => {
       evidenceRecords.map((r) => r.id),
       allItems.map((i) => i.id),
       reviewers.map((r) => r.id),
+      fixtures.institutions.map((i) => i.id),
+      sampleProfiles.map((p) => p.id),
+      ...sampleProfiles.map((p) => p.items.map((i) => i.key)),
     ]) {
       assert.equal(new Set(ids).size, ids.length);
     }
@@ -41,6 +45,30 @@ describe('fixtures', () => {
         for (const id of item.derivedFrom) assert.ok(ids.has(id), `${item.id} -> ${id}`);
       }
     }
+  });
+
+  it('rule 1: every sample-profile fact has a source detail, and derived facts name their inputs', () => {
+    for (const profile of sampleProfiles) {
+      const keys = new Set(profile.items.map((i) => i.key));
+      for (const item of profile.items) {
+        assert.ok(item.sourceDetail.trim(), `${profile.id}/${item.key}`);
+        assert.equal(item.sourceType === 'derived', !!item.derivedFrom?.length, `${profile.id}/${item.key}`);
+        for (const key of item.derivedFrom ?? []) assert.ok(keys.has(key), `${profile.id}/${item.key} -> ${key}`);
+      }
+      assert.ok(profile.blindSpots.length > 0, `${profile.id} blind spots`);
+      assert.ok(profile.suggestion.reasons.length > 0, `${profile.id} reasons`);
+      if (profile.suggestion.outcome === 'decline') {
+        assert.ok(profile.suggestion.whatWouldChange.length > 0, `${profile.id} what would change`);
+      }
+    }
+  });
+
+  it('gives each record at most one fact per figure', () => {
+    for (const items of [...evidenceRecords.map((r) => r.items), ...sampleProfiles.map((p) => p.items)]) {
+      const names = items.flatMap((i) => (i.figure ? [i.figure.name] : []));
+      assert.equal(new Set(names).size, names.length);
+    }
+    assert.ok(profileItems.length > 0);
   });
 
   it('rule 1: header flags point at a fact in the application’s own record', () => {
@@ -97,6 +125,7 @@ describe('fixtures', () => {
 
   it('keeps application status consistent with the evidence and decisions', () => {
     for (const app of applications) {
+      assert.ok(app.submittedAt && isTimestamp(app.submittedAt), `${app.id} submittedAt`);
       const record = evidenceRecords.find((r) => r.id === app.evidenceRecordId);
       const hasDecision = decisions.some((d) => d.applicationId === app.id);
       assert.equal(app.status === 'decided', hasDecision, `${app.id} decided`);

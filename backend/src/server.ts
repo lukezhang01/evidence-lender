@@ -8,7 +8,9 @@ import { createStore } from './store.ts';
 const DEFAULT_PORT = 4000;
 const port = Number(process.env.PORT ?? DEFAULT_PORT);
 
-const store = createStore(loadProductConfig(), fixtures);
+const store = createStore(loadProductConfig(), fixtures, {
+  connectionDelayMs: fixtures.sampleConnectionDelayMs,
+});
 const server = createServer(createRequestHandler(store));
 
 server.listen(port, () => {

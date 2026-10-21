@@ -1,0 +1,219 @@
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lender-card);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.title {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.summary {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-divider);
+}
+
+.rowLabel {
+  flex: none;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.rowValue {
+  margin: 0;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.loggedLabel {
+  composes: rowLabel;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.loggedValue {
+  composes: rowValue;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reasonsTitle {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.reasonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reason {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tag {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-badge);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.helps {
+  composes: tag;
+  background: var(--color-accent-tint);
+  color: var(--color-accent-tint-text);
+}
+
+.hurts {
+  composes: tag;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-text);
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.model {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.override {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.overrideTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.input {
+  width: 100%;
+  height: var(--control-min);
+  padding: 0 12px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 15px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.textarea {
+  composes: input;
+  height: auto;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+.badge {
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 18px 16px;
+  }
+}

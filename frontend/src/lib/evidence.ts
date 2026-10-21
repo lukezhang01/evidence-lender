@@ -1,6 +1,6 @@
-import type { EvidenceItem, EvidenceRecord } from '@evidence-lender/backend/contract';
+import type { EvidenceItem, EvidenceRecord, RecordValue } from '@evidence-lender/backend/contract';
 import type { Formatters } from './format';
-import { sourceTypeLabel } from './labels';
+import { outcomeLabel, sourceTypeLabel } from './labels';
 
 // Facts are every sealed item, uploads included. Sources are the distinct
 // places facts came from; derived facts are computed, not a source.
@@ -18,12 +18,19 @@ export function shortHash(sha256: string) {
 }
 
 // Every provenance line carries source type, reference and time (rule 1).
-export function provenanceLine(item: EvidenceItem, format: Formatters) {
+// `compact` drops the readable detail where space is tight; never the three parts.
+export function provenanceLine(item: EvidenceItem, format: Formatters, { compact = false } = {}) {
   const when = item.sourceType === 'derived' ? 'computed' : 'retrieved';
   return [
     sourceTypeLabel[item.sourceType],
-    item.sourceDetail,
+    ...(compact ? [] : [item.sourceDetail]),
     `ref ${item.sourceRef}`,
     `${when} ${format.dateTime(item.retrievedAt)}`,
   ].join(' · ');
 }
+
+export function recordValue(value: RecordValue, format: Formatters) {
+  return value.kind === 'money' ? format.money(value.amount) : outcomeLabel[value.outcome];
+}
+
+export const countLabel = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;

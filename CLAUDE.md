@@ -26,10 +26,15 @@ These are the point of the product. Never trade them away for convenience.
 
 npm workspaces, Node 24+.
 
-- `frontend/`: Next.js App Router app. Routes `/apply`, `/review`, `/review/[id]`.
-  Reads all data on the server through `src/lib/api.ts`. This Next.js version
-  differs from older ones; read `frontend/AGENTS.md` and the bundled docs in
-  `node_modules/next/dist/docs/` before using a Next API.
+- `frontend/`: Next.js App Router app.
+  - Routes: `/apply` (borrower flow, a reducer in `components/borrower/flow.ts`),
+    `/apply/[id]` (the applicant's decision, polls until a reviewer decides),
+    `/review` and `/review/[id]` (queue, evidence, decision panel).
+  - Reads go through `src/lib/api.ts` on the server; every write is a Server
+    Action in `src/lib/actions.ts`. Client components get preformatted view
+    models (`src/lib/views.ts`), so server and browser never format differently.
+  - This Next.js version differs from older ones; read `frontend/AGENTS.md` and
+    the bundled docs in `node_modules/next/dist/docs/` before using a Next API.
 - `backend/`: temporary fixture-backed JSON API (plain `node:http`, run with
   Node's built-in TypeScript support, no build step). Real integrations replace
   it in build order step 6.
@@ -38,9 +43,14 @@ npm workspaces, Node 24+.
   - `src/fixtures.ts`: the one file with sample data.
   - `config/product.json`: brand, locale, currency, time zone, amount options
     and illustrative pricing. Validated at startup, including the 35% APR cap.
-  - `src/store.ts`: seals evidence records (sha256 over canonical items),
-    prices suggestions from config and returns no suggestion when nothing
-    is verified.
+  - `src/store.ts`: in-memory state, reset from the fixtures on restart or
+    `POST /api/demo/reset`. Seals evidence records at submit (sha256 over
+    canonical items), prices offers from config (`src/pricing.ts`), returns no
+    suggestion when nothing is verified, and enforces the decision rules
+    (override note, applicant-facing decline reason, one decision per
+    application) whatever the frontend sends.
+  - `src/app.ts`: the HTTP routes. `src/*.test.ts`: product rules on the
+    fixtures and the full borrower-to-reviewer flow over HTTP.
 - `docs/HANDOFF.md`: the spec. `docs/design/*.dc.html`: the design source.
 
 ## Working conventions
@@ -63,3 +73,5 @@ npm workspaces, Node 24+.
 
 From the repo root: `npm run dev` (backend on :4000, frontend on :3000),
 `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
+Restart `npm run dev` after adding classes to an existing CSS module: the dev
+server has been seen serving the old class map until restarted.

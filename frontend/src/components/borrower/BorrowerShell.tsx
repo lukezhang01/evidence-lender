@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { BrandMark } from '@/components/ui/BrandMark';
 import styles from './BorrowerShell.module.css';
@@ -9,6 +8,7 @@ interface BorrowerShellProps {
   children: React.ReactNode;
 }
 
+// One centred column, max 520px (docs/HANDOFF.md section 2).
 export function BorrowerShell({ brandName, sampleData, children }: BorrowerShellProps) {
   return (
     <div className={styles.page}>
@@ -17,13 +17,20 @@ export function BorrowerShell({ brandName, sampleData, children }: BorrowerShell
           <BrandMark name={brandName} />
           {sampleData && <Badge tone="demo">Demo · sample data</Badge>}
         </header>
-        <main className={styles.card}>{children}</main>
-        {sampleData && (
-          <footer className={styles.footer}>
-            <Link href="/review">Open the lender review screen</Link>
-          </footer>
-        )}
+        {children}
       </div>
     </div>
   );
+}
+
+export function BorrowerCard({ children, ref }: { children: React.ReactNode; ref?: React.Ref<HTMLElement> }) {
+  return (
+    <main className={styles.card} ref={ref}>
+      {children}
+    </main>
+  );
+}
+
+export function BorrowerFooter({ children }: { children: React.ReactNode }) {
+  return <footer className={styles.footer}>{children}</footer>;
 }
