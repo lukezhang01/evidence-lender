@@ -1,61 +1,41 @@
 import type { Application, EvidenceRecord } from '@evidence-lender/backend/contract';
-import { Badge } from '@/components/ui/Badge';
 import { LockIcon } from '@/components/ui/icons';
-import { countLabel, provenanceLine, shortHash, summarizeRecord } from '@/lib/evidence';
+import { countLabel, shortHash, summarizeRecord } from '@/lib/evidence';
 import type { Formatters } from '@/lib/format';
-import { applicationStatus, flagLabel } from '@/lib/labels';
 import { Card } from './Card';
 import styles from './ApplicationHeader.module.css';
 
 interface ApplicationHeaderProps {
   application: Application;
-  record: EvidenceRecord | undefined;
+  record: EvidenceRecord;
   format: Formatters;
 }
 
 export function ApplicationHeader({ application, record, format }: ApplicationHeaderProps) {
-  const status = applicationStatus[application.status];
-
-  // A chip is a claim, so it only shows when the fact behind it is in the record.
-  const chips = application.flags.flatMap((flag) => {
-    const item = record?.items.find((i) => i.id === flag.evidenceItemId);
-    if (!item) return [];
-    const { label, tone } = flagLabel[flag.code];
-    return [
-      <Badge key={flag.code} tone={tone} title={provenanceLine(item, format)}>
-        {label}
-      </Badge>,
-    ];
-  });
-
+  const { factCount, sourceCount } = summarizeRecord(record);
   return (
     <Card labelledBy="applicant-name">
-      <div className={styles.top}>
-        <div className={styles.identity}>
-          <h1 id="applicant-name" className={styles.name}>
-            {application.applicant.legalName}
-          </h1>
-          <span className={styles.meta}>
-            Application {application.id} · requested {format.wholeMoney(application.requestedAmount)}
-            {application.submittedAt && ` · submitted ${format.dateTime(application.submittedAt)}`}
-          </span>
-        </div>
-        {chips.length > 0 && <div className={styles.chips}>{chips}</div>}
+      <div className={styles.identity}>
+        <h1 id="applicant-name" className={styles.name}>
+          {application.applicant.legalName}
+        </h1>
+        <span className={styles.meta}>
+          Application {application.id} · requested {format.wholeMoney(application.requestedAmount)}
+          {application.submittedAt && ` · submitted ${format.dateTime(application.submittedAt)}`}
+        </span>
       </div>
 
-      {record ? (
-        <div className={styles.record}>
-          <span className={styles.recordId}>
-            <LockIcon size={14} />
-            Evidence record {record.id}
-          </span>
-          <RecordCounts record={record} />
-          <span>Sealed {format.dateTime(record.sealedAt)}</span>
-          <span title={record.sha256}>sha256 {shortHash(record.sha256)}</span>
-        </div>
-      ) : (
-        <div className={styles.record}>No evidence record yet</div>
-      )}
+      <div className={styles.record}>
+        <span className={styles.recordId}>
+          <LockIcon size={14} />
+          Evidence record {record.id}
+        </span>
+        <span>
+          {countLabel(factCount, 'fact', 'facts')} · {countLabel(sourceCount, 'source', 'sources')}
+        </span>
+        <span>Sealed {format.dateTime(record.sealedAt)}</span>
+        <span title={record.sha256}>sha256 {shortHash(record.sha256)}</span>
+      </div>
 
       {application.borrowerNote && (
         <div className={styles.borrowerNote}>
@@ -63,22 +43,6 @@ export function ApplicationHeader({ application, record, format }: ApplicationHe
           <p className={styles.borrowerNoteText}>{application.borrowerNote}</p>
         </div>
       )}
-
-      {status.note && (
-        <div className={styles.status}>
-          <Badge tone={status.tone}>{status.label}</Badge>
-          <p className={styles.statusNote}>{status.note}</p>
-        </div>
-      )}
     </Card>
-  );
-}
-
-function RecordCounts({ record }: { record: EvidenceRecord }) {
-  const { factCount, sourceCount } = summarizeRecord(record);
-  return (
-    <span>
-      {countLabel(factCount, 'fact', 'facts')} · {countLabel(sourceCount, 'source', 'sources')}
-    </span>
   );
 }

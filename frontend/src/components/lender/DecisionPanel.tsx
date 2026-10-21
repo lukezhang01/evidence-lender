@@ -6,37 +6,28 @@ import { Button } from '@/components/ui/Button';
 import { decideAction, quoteAction } from '@/lib/actions';
 import d from './Decision.module.css';
 
-export interface SuggestionView {
-  outcome: 'approve' | 'decline';
-  title: string;
-  summary: string | null;
-  metrics: { label: string; value: string }[];
-  metricsSource: string | null;
-  reasons: { direction: 'helps' | 'hurts'; text: string }[];
-  modelLine: string;
-}
-
 interface DecisionPanelProps {
   applicationId: string;
-  suggestion: SuggestionView;
-  suggestedAmount: number | null;
+  requestedLabel: string;
   // rangeLabel reads like "$500 and $6,000".
-  adjust: { min: number; max: number; rangeLabel: string; initialAmount: number; initialPayment: string };
+  approve: { min: number; max: number; rangeLabel: string; initialAmount: number; initialPayment: string; termsLine: string };
   declineReasons: { id: string; label: string }[];
 }
 
-type Mode = 'idle' | 'adjust' | 'decline';
+type Mode = 'idle' | 'approve' | 'decline';
 
-const NOTE_REQUIRED = 'Write why you’re overriding the suggestion. It’s saved with the decision.';
+const NOTE_REQUIRED = 'Write why you’re deciding this way. It’s saved with the decision.';
 const parseAmount = (v: string) => {
   const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
   return Number.isNaN(n) ? null : n;
 };
 
-export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adjust, declineReasons }: DecisionPanelProps) {
+// Nothing here is verified at source, so no suggestion is made (rule 2): the
+// reviewer decides and always writes why (rule 5). The backend checks the same.
+export function DecisionPanel({ applicationId, requestedLabel, approve, declineReasons }: DecisionPanelProps) {
   const [mode, setMode] = useState<Mode>('idle');
-  const [amount, setAmount] = useState(String(adjust.initialAmount));
-  const [payment, setPayment] = useState(adjust.initialPayment);
+  const [amount, setAmount] = useState(String(approve.initialAmount));
+  const [payment, setPayment] = useState(approve.initialPayment);
   const [reasonId, setReasonId] = useState('');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -44,26 +35,19 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
   const [pending, startTransition] = useTransition();
   const quoteSeq = useRef(0);
 
-  const approving = suggestion.outcome === 'approve';
-  const amountInRange = (n: number | null): n is number => n !== null && n >= adjust.min && n <= adjust.max;
+  const inRange = (n: number | null): n is number => n !== null && n >= approve.min && n <= approve.max;
 
-  function reset(next: Mode) {
+  function choose(next: Mode) {
     setMode(next);
     setErrors({});
     setFormError(null);
-    if (next === 'idle') {
-      setNote('');
-      setReasonId('');
-      setAmount(String(adjust.initialAmount));
-      setPayment(adjust.initialPayment);
-    }
   }
 
   function onAmount(value: string) {
     setAmount(value);
     setErrors((e) => ({ ...e, amount: undefined }));
     const n = parseAmount(value);
-    if (!amountInRange(n)) {
+    if (!inRange(n)) {
       setPayment('—');
       return;
     }
@@ -75,21 +59,21 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
       .catch(() => undefined);
   }
 
-  function validate(): { request: DecisionRequest | null; fields: FieldErrors } {
+  function confirm() {
     const fields: FieldErrors = {};
-    if (mode === 'adjust') {
+    if (!note.trim()) fields.note = NOTE_REQUIRED;
+    let request: DecisionRequest;
+    if (mode === 'approve') {
       const n = parseAmount(amount);
-      if (!amountInRange(n)) fields.amount = `Enter an amount between ${adjust.rangeLabel}.`;
-      else if (approving && n === suggestedAmount) fields.amount = 'That’s the suggested amount. Use “Approve as suggested” instead.';
-      if (!note.trim()) fields.overrideNote = NOTE_REQUIRED;
-      return { request: Object.keys(fields).length ? null : { mode, amount: n!, overrideNote: note }, fields };
+      if (!inRange(n)) fields.amount = `Enter an amount between ${approve.rangeLabel}.`;
+      request = { outcome: 'approved', amount: n ?? 0, note };
+    } else {
+      if (!reasonId) fields.declineReasonId = 'Choose the reason the applicant will see.';
+      request = { outcome: 'declined', declineReasonId: reasonId, note };
     }
-    if (!reasonId) fields.declineReasonId = 'Choose the reason the applicant will see.';
-    if (approving && !note.trim()) fields.overrideNote = NOTE_REQUIRED;
-    return { request: Object.keys(fields).length ? null : { mode: 'decline', declineReasonId: reasonId, overrideNote: note }, fields };
-  }
+    setErrors(fields);
+    if (Object.keys(fields).length) return;
 
-  function send(request: DecisionRequest) {
     setFormError(null);
     startTransition(async () => {
       const result = await decideAction(applicationId, request).catch(() => null);
@@ -101,12 +85,6 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
     });
   }
 
-  function confirm() {
-    const { request, fields } = validate();
-    setErrors(fields);
-    if (request) send(request);
-  }
-
   const errorProps = (field: string) =>
     errors[field] ? { 'aria-invalid': true as const, 'aria-describedby': `err-${field}` } : {};
   const fieldError = (field: string) =>
@@ -116,71 +94,27 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
       </span>
     ) : null;
 
-  const overrideTitle = mode === 'adjust' ? (approving ? 'Adjust terms' : 'Approve instead') : 'Decline application';
-  const confirmLabel = mode === 'adjust' ? (approving ? 'Confirm terms' : 'Confirm approval') : 'Confirm decline';
-  const needsNote = mode === 'adjust' || approving;
-
   return (
-    <section className={d.panel} aria-labelledby="suggested-decision">
+    <section className={d.panel} aria-labelledby="decision-heading">
       <div className={d.intro}>
-        <span className={d.eyebrow}>Suggested decision</span>
-        <h2 id="suggested-decision" className={d.title}>
-          {suggestion.title}
+        <span className={d.eyebrow}>Your decision</span>
+        <h2 id="decision-heading" className={d.title}>
+          No automated suggestion
         </h2>
-        {suggestion.summary && <span className={d.summary}>{suggestion.summary}</span>}
-      </div>
-
-      {suggestion.metrics.length > 0 && (
-        <div>
-          <dl className={d.rows}>
-            {suggestion.metrics.map((m) => (
-              <div key={m.label} className={d.row}>
-                <dt className={d.rowLabel}>{m.label}</dt>
-                <dd className={d.rowValue}>{m.value}</dd>
-              </div>
-            ))}
-          </dl>
-          {suggestion.metricsSource && <p className={d.caption}>{suggestion.metricsSource}</p>}
-        </div>
-      )}
-
-      <div className={d.reasons}>
-        <h3 className={d.reasonsTitle}>Top reasons</h3>
-        <ul className={d.reasonList}>
-          {suggestion.reasons.map((r) => (
-            <li key={r.text} className={d.reason}>
-              <span className={r.direction === 'helps' ? d.helps : d.hurts}>{r.direction === 'helps' ? 'Helps' : 'Hurts'}</span>
-              <span>{r.text}</span>
-            </li>
-          ))}
-        </ul>
-        <span className={d.caption}>These are the reasons the applicant sees, in plain words.</span>
+        <span className={d.summary}>
+          Everything here comes from a statement the applicant uploaded, so nothing is verified at source. Read the
+          facts, then approve or decline. The applicant asked for {requestedLabel}.
+        </span>
       </div>
 
       {mode === 'idle' ? (
-        <div className={d.actions}>
-          <Button size="lender" fullWidth disabled={pending} onClick={() => send({ mode: 'follow' })}>
-            {pending ? 'Logging…' : approving ? 'Approve as suggested' : 'Decline as suggested'}
+        <div className={d.pair}>
+          <Button size="lender" onClick={() => choose('approve')}>
+            Approve
           </Button>
-          {approving ? (
-            <div className={d.pair}>
-              <Button size="lender" variant="secondary" disabled={pending} onClick={() => reset('adjust')}>
-                Adjust terms
-              </Button>
-              <Button size="lender" variant="secondary" disabled={pending} onClick={() => reset('decline')}>
-                Decline
-              </Button>
-            </div>
-          ) : (
-            <Button size="lender" variant="secondary" fullWidth disabled={pending} onClick={() => reset('adjust')}>
-              Approve instead
-            </Button>
-          )}
-          {formError && (
-            <span className={d.error} role="alert">
-              {formError}
-            </span>
-          )}
+          <Button size="lender" variant="secondary" onClick={() => choose('decline')}>
+            Decline
+          </Button>
         </div>
       ) : (
         <form
@@ -191,12 +125,12 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
             confirm();
           }}
         >
-          <h3 className={d.overrideTitle}>{overrideTitle}</h3>
+          <h3 className={d.overrideTitle}>{mode === 'approve' ? 'Approve' : 'Decline application'}</h3>
 
-          {mode === 'adjust' && (
+          {mode === 'approve' && (
             <div className={d.field}>
               <label htmlFor="f-amount" className={d.label}>
-                New amount
+                Amount
               </label>
               <input
                 id="f-amount"
@@ -208,7 +142,7 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
                 {...errorProps('amount')}
               />
               <span className={d.hint} aria-live="polite">
-                {`Between ${adjust.rangeLabel}. Payment: ${payment} a month.`}
+                {`Between ${approve.rangeLabel}. ${approve.termsLine} Payment: ${payment} a month.`}
               </span>
               {fieldError('amount')}
             </div>
@@ -241,23 +175,23 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
           )}
 
           <div className={d.field}>
-            <label htmlFor="f-override" className={d.label}>
-              {needsNote ? 'Why are you overriding the suggestion?' : 'Note for the record (optional)'}
+            <label htmlFor="f-note" className={d.label}>
+              Why are you deciding this way?
             </label>
             <textarea
-              id="f-override"
+              id="f-note"
               rows={3}
               className={d.textarea}
-              placeholder="Applicant told us about a second job at another bank"
+              placeholder="Pay arrives every two weeks and rent is paid every month; the balance never went below zero"
               value={note}
               onChange={(e) => {
                 setNote(e.target.value);
-                setErrors((x) => ({ ...x, overrideNote: undefined }));
+                setErrors((x) => ({ ...x, note: undefined }));
               }}
-              {...errorProps('overrideNote')}
+              {...errorProps('note')}
             />
-            {needsNote && <span className={d.hint}>Required. Saved with the decision for audit and model review.</span>}
-            {fieldError('overrideNote')}
+            <span className={d.hint}>Required. Saved with the decision for audit.</span>
+            {fieldError('note')}
           </div>
 
           {formError && (
@@ -267,16 +201,14 @@ export function DecisionPanel({ applicationId, suggestion, suggestedAmount, adju
           )}
           <div className={d.pair}>
             <Button type="submit" size="lender" disabled={pending}>
-              {pending ? 'Logging…' : confirmLabel}
+              {pending ? 'Logging…' : mode === 'approve' ? 'Confirm approval' : 'Confirm decline'}
             </Button>
-            <Button size="lender" variant="secondary" disabled={pending} onClick={() => reset('idle')}>
+            <Button size="lender" variant="secondary" disabled={pending} onClick={() => choose('idle')}>
               Cancel
             </Button>
           </div>
         </form>
       )}
-
-      <span className={d.model}>{suggestion.modelLine}</span>
     </section>
   );
 }

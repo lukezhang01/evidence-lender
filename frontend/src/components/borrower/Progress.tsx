@@ -1,7 +1,7 @@
 import s from './borrower.module.css';
 
 const TOTAL = 4;
-const labels = ['', 'About you', 'Connect your bank', 'Check what we found', 'Decision'];
+const labels = ['', 'About you', 'Upload your statement', 'Check what we found', 'Decision'];
 
 export function Progress({ current }: { current: number }) {
   return (

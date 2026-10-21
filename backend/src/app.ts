@@ -17,7 +17,8 @@ interface Route {
   handler: Handler;
 }
 
-const MAX_BODY_BYTES = 64 * 1024;
+// Room for a statement CSV; the frontend caps uploads well below this.
+const MAX_BODY_BYTES = 1024 * 1024;
 
 export function createRequestHandler(store: Store) {
   const id = (ctx: RequestContext) => ctx.params.id!;
@@ -25,32 +26,20 @@ export function createRequestHandler(store: Store) {
     { method: 'GET', pattern: /^\/api\/config$/, handler: () => store.getConfig() },
     { method: 'GET', pattern: /^\/api\/me$/, handler: () => store.getCurrentReviewer() },
     { method: 'GET', pattern: /^\/api\/reviewers$/, handler: () => store.listReviewers() },
-    { method: 'GET', pattern: /^\/api\/institutions$/, handler: () => store.listInstitutions() },
     { method: 'GET', pattern: /^\/api\/quote$/, handler: (ctx) => store.quoteAmount(ctx.query.get('amount')) },
     { method: 'GET', pattern: /^\/api\/applications$/, handler: () => store.listApplications() },
     { method: 'POST', pattern: /^\/api\/applications$/, status: 201, handler: (ctx) => store.createApplication(ctx.body) },
     { method: 'GET', pattern: /^\/api\/applications\/(?<id>[^/]+)$/, handler: (ctx) => store.getApplication(id(ctx)) },
     {
       method: 'POST',
-      pattern: /^\/api\/applications\/(?<id>[^/]+)\/connections$/,
+      pattern: /^\/api\/applications\/(?<id>[^/]+)\/statement$/,
       status: 201,
-      handler: (ctx) => store.connect(id(ctx), ctx.body),
-    },
-    {
-      method: 'POST',
-      pattern: /^\/api\/applications\/(?<id>[^/]+)\/uploads$/,
-      status: 201,
-      handler: (ctx) => store.addUpload(id(ctx), ctx.body),
+      handler: (ctx) => store.uploadStatement(id(ctx), ctx.body),
     },
     {
       method: 'POST',
       pattern: /^\/api\/applications\/(?<id>[^/]+)\/submit$/,
       handler: (ctx) => store.submit(id(ctx), ctx.body),
-    },
-    {
-      method: 'GET',
-      pattern: /^\/api\/applications\/(?<id>[^/]+)\/suggestion$/,
-      handler: (ctx) => store.getSuggestion(id(ctx)),
     },
     {
       method: 'GET',
@@ -62,12 +51,6 @@ export function createRequestHandler(store: Store) {
       pattern: /^\/api\/applications\/(?<id>[^/]+)\/decisions$/,
       status: 201,
       handler: (ctx) => store.decide(id(ctx), ctx.body),
-    },
-    {
-      method: 'POST',
-      pattern: /^\/api\/applications\/(?<id>[^/]+)\/source-requests$/,
-      status: 201,
-      handler: (ctx) => store.requestSource(id(ctx), ctx.body),
     },
     {
       method: 'GET',
@@ -84,6 +67,11 @@ export function createRequestHandler(store: Store) {
       method: 'GET',
       pattern: /^\/api\/evidence-records\/(?<id>[^/]+)$/,
       handler: (ctx) => store.getEvidenceRecord(id(ctx)),
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/demo\/statements\/(?<id>[^/]+)$/,
+      handler: (ctx) => store.getSampleStatement(id(ctx)),
     },
     {
       method: 'POST',

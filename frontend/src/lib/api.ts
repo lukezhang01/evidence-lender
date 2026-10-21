@@ -11,11 +11,9 @@ import type {
   DraftEvidence,
   EvidenceRecord,
   FieldErrors,
-  Institution,
   Offer,
   Reviewer,
-  SourceRequest,
-  Suggestion,
+  StatementUpload,
 } from '@evidence-lender/backend/contract';
 import { connection } from 'next/server';
 import { cache } from 'react';
@@ -67,15 +65,14 @@ const app = (id: string, rest = '') => `/api/applications/${segment(id)}${rest}`
 export const getConfig = cache(() => getRequired<ConfigResponse>('/api/config'));
 export const getCurrentReviewer = cache(() => getRequired<Reviewer>('/api/me'));
 export const listReviewers = cache(() => getRequired<Reviewer[]>('/api/reviewers'));
-export const listInstitutions = cache(() => getRequired<Institution[]>('/api/institutions'));
 export const listApplications = cache(() => getRequired<Application[]>('/api/applications'));
 export const getApplication = cache((id: string) => getJson<Application>(app(id)));
-export const getSuggestion = cache((id: string) => getJson<Suggestion>(app(id, '/suggestion')));
 export const listDecisions = cache((id: string) => getJson<Decision[]>(app(id, '/decisions')));
 export const getBorrowerView = cache((id: string) => getJson<BorrowerView>(app(id, '/borrower-view')));
 export const getEvidenceRecord = cache((id: string) =>
   getJson<EvidenceRecord>(`/api/evidence-records/${segment(id)}`),
 );
+export const getSampleStatement = (id: string) => getJson<StatementUpload>(`/api/demo/statements/${segment(id)}`);
 
 export async function getQuote(amount: number): Promise<Offer | undefined> {
   const res = await fetch(apiUrl(`/api/quote?amount=${encodeURIComponent(amount)}`), { cache: 'no-store' });
@@ -87,11 +84,8 @@ export async function getQuote(amount: number): Promise<Offer | undefined> {
 export const createApplication = (body: { applicant: Application['applicant']; requestedAmount: number }) =>
   send<Application>('/api/applications', body);
 
-export const connectBank = (id: string, body: { institutionId: string; profileId?: string }) =>
-  send<DraftEvidence>(app(id, '/connections'), body);
-
-export const addUpload = (id: string, body: { fileName: string; contentType: string; sizeBytes: number }) =>
-  send<DraftEvidence>(app(id, '/uploads'), body);
+export const uploadStatement = (id: string, body: StatementUpload) =>
+  send<DraftEvidence>(app(id, '/statement'), body);
 
 export const submitApplication = (
   id: string,
@@ -99,9 +93,6 @@ export const submitApplication = (
 ) => send<Application>(app(id, '/submit'), body);
 
 export const recordDecision = (id: string, body: DecisionRequest) => send<Decision>(app(id, '/decisions'), body);
-
-export const requestSource = (id: string, kind: SourceRequest['kind']) =>
-  send<Application>(app(id, '/source-requests'), { kind });
 
 export const sendBorrowerRequest = (id: string, kind: BorrowerRequest['kind']) =>
   send<Application>(app(id, '/borrower-requests'), { kind });

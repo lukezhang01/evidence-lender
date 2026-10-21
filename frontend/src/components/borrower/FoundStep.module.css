@@ -5,8 +5,9 @@
   gap: 8px;
   padding: 7px 10px;
   border-radius: var(--radius-mark);
-  background: var(--color-soft-accent);
-  color: var(--color-accent-tint-text);
+  background: var(--color-warn-tint);
+  color: var(--color-warn-text);
+  overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 12px;
 }
@@ -115,41 +116,3 @@
   color: var(--color-text-secondary);
 }
 
-.upload {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-input);
-  background: var(--color-surface);
-}
-
-.uploadIcon {
-  flex: none;
-  display: flex;
-  color: var(--color-warn-text);
-}
-
-.uploadText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.uploadName {
-  font-size: 14px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.uploadNote {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--color-warn-text);
-}
-
-.fileInput {
-  display: none;
-}

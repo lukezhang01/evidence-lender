@@ -77,71 +77,10 @@
   font-weight: 500;
 }
 
-.reasons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reasonsTitle {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.reasonList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reason {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.tag {
-  flex: none;
-  padding: 3px 8px;
-  border-radius: var(--radius-badge);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.helps {
-  composes: tag;
-  background: var(--color-accent-tint);
-  color: var(--color-accent-tint-text);
-}
-
-.hurts {
-  composes: tag;
-  background: var(--color-warn-tint);
-  color: var(--color-warn-text);
-}
-
 .caption {
   font-size: 12px;
   line-height: 1.5;
   color: var(--color-text-muted);
-}
-
-.model {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .pair {

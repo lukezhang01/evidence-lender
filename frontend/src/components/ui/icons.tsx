@@ -76,27 +76,6 @@ export function FileIcon(props: IconProps) {
   );
 }
 
-export function BankIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M3 10 12 4l9 6" />
-      <line x1="5" y1="10" x2="5" y2="18" />
-      <line x1="10" y1="10" x2="10" y2="18" />
-      <line x1="14" y1="10" x2="14" y2="18" />
-      <line x1="19" y1="10" x2="19" y2="18" />
-      <line x1="3" y1="20" x2="21" y2="20" />
-    </Icon>
-  );
-}
-
-export function ChevronRightIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <polyline points="9 6 15 12 9 18" />
-    </Icon>
-  );
-}
-
 export function ChevronDownIcon(props: IconProps) {
   return (
     <Icon {...props}>

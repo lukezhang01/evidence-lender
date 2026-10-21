@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type {
   Applicant,
   Application,
@@ -12,37 +12,26 @@ import type {
   EvidenceItem,
   EvidenceRecord,
   FieldErrors,
-  Institution,
   Offer,
   ProductConfig,
   Reviewer,
-  SourceRequest,
-  Suggestion,
-  SuggestionMetrics,
+  StatementSummary,
 } from './contract.ts';
-import type {
-  DecisionFixture,
-  EvidenceRecordFixture,
-  SampleProfile,
-  SuggestionFixture,
-} from './fixtures.ts';
+import type { ApplicationSeed, DecisionFixture, SampleStatement } from './fixtures.ts';
 import { quote } from './pricing.ts';
 import { sealItems } from './seal.ts';
+import { coversMonths, parseStatement, StatementError, statementFacts } from './statement.ts';
 
 export interface StoreData {
   reviewers: Reviewer[];
   currentReviewerId: string;
-  applications: Application[];
-  evidenceRecords: EvidenceRecordFixture[];
-  suggestions: SuggestionFixture[];
-  decisions: DecisionFixture[];
-  institutions: Institution[];
   sampleApplicant: Applicant;
-  sampleProfiles: SampleProfile[];
+  sampleStatements: SampleStatement[];
+  applicationSeeds: ApplicationSeed[];
+  decisions: DecisionFixture[];
 }
 
 export interface StoreOptions {
-  connectionDelayMs: number;
   now?: () => Date;
 }
 
@@ -63,53 +52,98 @@ export class ApiProblem extends Error {
 interface Draft {
   items: EvidenceItem[];
   blindSpots: BlindSpot[];
-  profileId?: string;
 }
 
 interface State {
   applications: Map<string, Application>;
   records: Map<string, EvidenceRecord>;
   drafts: Map<string, Draft>;
-  suggestions: Map<string, SuggestionFixture>;
   decisions: Decision[];
 }
 
 const MAX_TEXT = 2000;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_TEXT) : '');
-const shortId = () => randomBytes(3).toString('hex');
+const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 
 // In-memory state over the fixtures. Resettable for demos; replaced by real
-// persistence in build order step 6.
-export function createStore(config: ProductConfig, data: StoreData, options: StoreOptions) {
+// persistence later.
+export function createStore(config: ProductConfig, data: StoreData, options: StoreOptions = {}) {
   const now = () => (options.now ?? (() => new Date()))().toISOString();
   const money = new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.currency,
     maximumFractionDigits: 0,
   });
+  const calendarDay = new Intl.DateTimeFormat(config.locale, { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+  const factFormat = {
+    money: (n: number) => money.format(n),
+    day: (d: string) => calendarDay.format(new Date(`${d}T00:00:00Z`)),
+  };
+
+  // Reads one statement into facts, or throws a message for the applicant.
+  function readStatement(applicationId: string, fileName: string, csv: string, uploadedAt: string) {
+    const statement = parseStatement(csv);
+    const months = config.borrower.minimumStatementMonths;
+    if (!coversMonths(statement, months)) {
+      throw new StatementError(
+        `This statement runs from ${factFormat.day(statement.firstDate)} to ${factFormat.day(statement.lastDate)}. Upload at least ${months} months of transactions.`,
+      );
+    }
+    const fileSha256 = sha256(csv);
+    const { items, blindSpots } = statementFacts(
+      { statement, fileName, uploadRef: `upload-${fileSha256.slice(0, 8)}`, uploadedAt, idPrefix: `ev-${applicationId}` },
+      factFormat,
+    );
+    const summary: StatementSummary = {
+      fileName,
+      fileSha256,
+      transactionCount: statement.rows.length,
+      firstDate: statement.firstDate,
+      lastDate: statement.lastDate,
+      hasBalance: statement.hasBalance,
+      uploadedAt,
+    };
+    return { items, blindSpots, summary };
+  }
 
   function load(): State {
-    const fixtures = structuredClone({
-      applications: data.applications,
-      evidenceRecords: data.evidenceRecords,
-      suggestions: data.suggestions,
-      decisions: data.decisions,
-    });
-    return {
-      applications: new Map(fixtures.applications.map((a) => [a.id, a])),
-      records: new Map(fixtures.evidenceRecords.map((r) => [r.id, { ...r, sha256: sealItems(r.items) }])),
-      drafts: new Map(),
-      suggestions: new Map(fixtures.suggestions.map((s) => [s.applicationId, s])),
-      decisions: fixtures.decisions.map(({ amount, ...d }) => ({
-        ...d,
-        ...(amount !== undefined ? { offer: quote(amount, config.pricing) } : {}),
-      })),
-    };
+    const state: State = { applications: new Map(), records: new Map(), drafts: new Map(), decisions: [] };
+    const decided = new Set(data.decisions.map((d) => d.applicationId));
+    for (const seed of data.applicationSeeds) {
+      const sample = data.sampleStatements.find((s) => s.id === seed.statementId);
+      if (!sample) throw new Error(`Seed ${seed.id} names an unknown sample statement ${seed.statementId}`);
+      const { items, blindSpots, summary } = readStatement(seed.id, sample.fileName, sample.csv, seed.uploadedAt);
+      const record: EvidenceRecord = {
+        id: `ER-${seed.id}`,
+        applicationId: seed.id,
+        items,
+        blindSpots,
+        sealedAt: seed.submittedAt,
+        sha256: sealItems(items),
+      };
+      state.records.set(record.id, record);
+      state.applications.set(seed.id, {
+        id: seed.id,
+        applicant: { ...seed.applicant },
+        requestedAmount: seed.requestedAmount,
+        status: decided.has(seed.id) ? 'decided' : 'ready',
+        submittedAt: seed.submittedAt,
+        statement: summary,
+        borrowerRequests: [],
+        ...(seed.borrowerNote ? { borrowerNote: seed.borrowerNote } : {}),
+        evidenceRecordId: record.id,
+      });
+    }
+    state.decisions = data.decisions.map(({ amount, ...d }) => ({
+      ...structuredClone(d),
+      ...(amount !== undefined ? { offer: quote(amount, config.pricing) } : {}),
+    }));
+    return state;
   }
   let state = load();
 
-  // ---- reads ---------------------------------------------------------------
+  // ---- helpers ---------------------------------------------------------------
 
   function requireApplication(id: string, { allowDraft = false } = {}): Application {
     const app = state.applications.get(id);
@@ -117,63 +151,10 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     return app;
   }
 
-  function requireDraft(id: string): { app: Application; draft: Draft } {
+  function requireDraft(id: string): Application {
     const app = requireApplication(id, { allowDraft: true });
     if (app.status !== 'draft') throw new ApiProblem(409, `Application ${id} is already submitted`);
-    let draft = state.drafts.get(id);
-    if (!draft) {
-      draft = { items: [], blindSpots: [] };
-      state.drafts.set(id, draft);
-    }
-    return { app, draft };
-  }
-
-  function recordFor(app: Application) {
-    return app.evidenceRecordId ? state.records.get(app.evidenceRecordId) : undefined;
-  }
-
-  function metricsFor(items: EvidenceItem[], offer: Offer): SuggestionMetrics {
-    const figure = (name: string) => items.find((i) => i.verified && i.figure?.name === name);
-    const pay = figure('monthly_net_pay');
-    const leftOver = figure('monthly_left_over');
-    return {
-      monthlyPayment: offer.monthlyPayment,
-      ...(pay?.figure && pay.figure.value > 0 ? { paymentShareOfPay: offer.monthlyPayment / pay.figure.value } : {}),
-      ...(leftOver?.figure ? { leftOverAfterPayment: leftOver.figure.value - offer.monthlyPayment } : {}),
-      derivedFrom: [pay?.id, leftOver?.id].filter((id): id is string => !!id),
-    };
-  }
-
-  function getSuggestion(applicationId: string): Suggestion | undefined {
-    const app = state.applications.get(applicationId);
-    const fixture = state.suggestions.get(applicationId);
-    if (!app || app.status === 'draft' || !fixture) return undefined;
-
-    const record = recordFor(app);
-    const base = {
-      applicationId,
-      modelVersion: fixture.modelVersion,
-      modelValidatedAt: fixture.modelValidatedAt,
-      pricingIllustrative: config.pricing.illustrative,
-      whatWouldChange: [] as string[],
-    };
-
-    // Uploads never feed the suggestion: with nothing verified at source, there is none.
-    if (!record) return { ...base, outcome: 'none', noneReason: 'nothing_submitted', reasons: [] };
-    if (!record.items.some((i) => i.verified) || fixture.outcome === 'none') {
-      return { ...base, outcome: 'none', noneReason: 'nothing_verified', reasons: [] };
-    }
-    if (fixture.outcome === 'decline') {
-      return { ...base, outcome: 'decline', reasons: fixture.reasons, whatWouldChange: fixture.whatWouldChange };
-    }
-    const offer = quote(Math.min(app.requestedAmount, config.pricing.starterLimit), config.pricing);
-    return {
-      ...base,
-      outcome: 'approve',
-      offer,
-      metrics: metricsFor(record.items, offer),
-      reasons: fixture.reasons,
-    };
+    return app;
   }
 
   function listDecisions(applicationId: string) {
@@ -181,12 +162,6 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       .filter((d) => d.applicationId === applicationId)
       .sort((a, b) => Date.parse(a.decidedAt) - Date.parse(b.decidedAt));
   }
-
-  function latestDecision(applicationId: string) {
-    return listDecisions(applicationId).at(-1);
-  }
-
-  // ---- borrower writes -----------------------------------------------------
 
   function parseApplicant(body: Record<string, unknown>, fields: FieldErrors): Applicant {
     const a = isRecord(body.applicant) ? body.applicant : {};
@@ -204,6 +179,27 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     return amount;
   }
 
+  const rangeMessage = () => {
+    const { min, max } = config.pricing.reviewerAdjustRange;
+    return `Enter an amount between ${money.format(min)} and ${money.format(max)}.`;
+  };
+
+  function addMonthsLocal(isoTime: string, months: number): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: config.timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(new Date(isoTime));
+    const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+    const target = new Date(Date.UTC(part('year'), part('month') - 1 + months, 1));
+    const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+    target.setUTCDate(Math.min(part('day'), lastDay));
+    return target.toISOString().slice(0, 10);
+  }
+
+  // ---- borrower --------------------------------------------------------------
+
   function createApplication(body: unknown): Application {
     const b = isRecord(body) ? body : {};
     const fields: FieldErrors = {};
@@ -217,115 +213,61 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       applicant,
       requestedAmount,
       status: 'draft',
-      dataStatus: 'not_connected',
-      flags: [],
-      sourceRequests: [],
       borrowerRequests: [],
     };
     state.applications.set(app.id, app);
     return app;
   }
 
-  async function connect(applicationId: string, body: unknown): Promise<DraftEvidence> {
-    const { app, draft } = requireDraft(applicationId);
+  // A new upload replaces the previous one.
+  function uploadStatement(applicationId: string, body: unknown): DraftEvidence {
+    const app = requireDraft(applicationId);
     const b = isRecord(body) ? body : {};
-    const institution = data.institutions.find((i) => i.id === b.institutionId);
-    if (!institution) throw new ApiProblem(422, 'Choose a bank from the list', { institutionId: 'Choose a bank.' });
-    const profile = data.sampleProfiles.find((p) => p.id === b.profileId) ?? data.sampleProfiles[0];
-    if (!profile) throw new ApiProblem(409, 'No sample bank data is configured');
+    const fileName = text(b.fileName).slice(0, 200) || 'statement.csv';
+    const csv = typeof b.csv === 'string' ? b.csv : '';
+    if (!csv.trim()) throw new ApiProblem(422, 'Choose a CSV file to upload.', { statement: 'Choose a CSV file to upload.' });
 
-    // Stands in for the data provider reading the account (HANDOFF section 8).
-    await new Promise((resolve) => setTimeout(resolve, options.connectionDelayMs));
-
-    const connectedAt = now();
-    const connectionRef = `conn-${shortId()}`;
-    const idFor = (key: string) => `ev-${app.id}-${key}`;
-    const connected: EvidenceItem[] = profile.items.map((t) => ({
-      id: idFor(t.key),
-      category: t.category,
-      statement: t.statement,
-      sourceType: t.sourceType,
-      sourceRef: t.sourceType === 'derived' ? `calc-${t.key}-${app.id}` : connectionRef,
-      sourceDetail: t.sourceDetail,
-      retrievedAt: connectedAt,
-      verified: true,
-      ...(t.derivedFrom ? { derivedFrom: t.derivedFrom.map(idFor) } : {}),
-      ...(t.figure ? { figure: { ...t.figure } } : {}),
-      records: structuredClone(t.records),
-    }));
-
-    // A new connection replaces the previous one; uploads stay.
-    draft.items = [...connected, ...draft.items.filter((i) => i.sourceType === 'upload')];
-    draft.blindSpots = structuredClone(profile.blindSpots);
-    draft.profileId = profile.id;
-    app.connection = { institutionName: institution.kind === 'other' ? null : institution.name, connectedAt };
-    app.dataStatus = 'bank_connected';
-    return { application: app, items: draft.items };
-  }
-
-  function addUpload(applicationId: string, body: unknown): DraftEvidence {
-    const { app, draft } = requireDraft(applicationId);
-    const b = isRecord(body) ? body : {};
-    const fileName = text(b.fileName).slice(0, 200);
-    if (!fileName) throw new ApiProblem(422, 'Choose a file', { fileName: 'Choose a file to upload.' });
-
-    const n = draft.items.filter((i) => i.sourceType === 'upload').length + 1;
-    const contentType = text(b.contentType);
-    const kind = contentType === 'application/pdf' ? 'PDF document' : contentType.startsWith('image/') ? 'Image' : 'Document';
-    draft.items.push({
-      id: `ev-${app.id}-upload-${n}`,
-      category: 'capacity',
-      statement: `${fileName}, not yet read by a person`,
-      sourceType: 'upload',
-      sourceRef: `upload-${shortId()}`,
-      sourceDetail: kind,
-      retrievedAt: now(),
-      verified: false,
-      records: [],
-    });
-    if (app.dataStatus === 'not_connected') app.dataStatus = 'uploads_only';
-    return { application: app, items: draft.items };
+    let read;
+    try {
+      read = readStatement(app.id, fileName, csv, now());
+    } catch (err) {
+      if (err instanceof StatementError) throw new ApiProblem(422, err.message, { statement: err.message });
+      throw err;
+    }
+    state.drafts.set(app.id, { items: read.items, blindSpots: read.blindSpots });
+    app.statement = read.summary;
+    return { application: app, items: read.items, blindSpots: read.blindSpots };
   }
 
   function submit(applicationId: string, body: unknown): Application {
-    const { app, draft } = requireDraft(applicationId);
+    const app = requireDraft(applicationId);
+    const draft = state.drafts.get(app.id);
     const b = isRecord(body) ? body : {};
     const fields: FieldErrors = {};
     const applicant = parseApplicant(b, fields);
     const requestedAmount = parseRequestedAmount(b, fields);
-    if (draft.items.length === 0) fields.evidence = 'Connect your bank before you submit.';
-    if (Object.keys(fields).length) throw new ApiProblem(422, 'This application isn’t ready to submit', fields);
+    if (!draft) fields.statement = 'Upload your bank statement before you submit.';
+    if (Object.keys(fields).length || !draft) {
+      throw new ApiProblem(422, 'This application isn’t ready to submit', fields);
+    }
 
     const sealedAt = now();
     const record: EvidenceRecord = {
       id: `ER-${app.id}`,
       applicationId: app.id,
       items: draft.items,
-      blindSpots: draft.blindSpots.length
-        ? draft.blindSpots
-        : [{ title: 'Income, bills and balances at the source', note: 'Nothing here could be traced to a bank or employer.' }],
+      blindSpots: draft.blindSpots,
       sealedAt,
       sha256: sealItems(draft.items),
     };
     state.records.set(record.id, record);
     state.drafts.delete(app.id);
-
-    const profile = data.sampleProfiles.find((p) => p.id === draft.profileId);
-    state.suggestions.set(
-      app.id,
-      profile
-        ? { applicationId: app.id, ...structuredClone(profile.suggestion) }
-        : { applicationId: app.id, outcome: 'none', reasons: [], whatWouldChange: [], modelVersion: '[version]', modelValidatedAt: null },
-    );
-
-    const holder = record.items.find((i) => i.verified && i.sourceType === 'bank_api' && i.category === 'identity');
     Object.assign(app, {
       applicant,
       requestedAmount,
-      status: record.items.some((i) => i.verified) ? 'ready' : 'unverifiable',
+      status: 'ready',
       submittedAt: sealedAt,
       evidenceRecordId: record.id,
-      flags: holder ? [{ code: 'bank_connected', evidenceItemId: holder.id }] : [],
       ...(text(b.borrowerNote) ? { borrowerNote: text(b.borrowerNote) } : {}),
     } satisfies Partial<Application>);
     return app;
@@ -334,7 +276,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
   function borrowerRequest(applicationId: string, body: unknown): Application {
     const app = requireApplication(applicationId);
     const kind = isRecord(body) ? body.kind : undefined;
-    const decision = latestDecision(app.id);
+    const decision = listDecisions(app.id).at(-1);
     const allowed: Record<BorrowerRequest['kind'], Decision['outcome']> = {
       accept_offer: 'approved',
       talk_first: 'approved',
@@ -352,131 +294,78 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     return app;
   }
 
-  function addMonthsLocal(iso: string, months: number): string {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: config.timeZone,
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-    }).formatToParts(new Date(iso));
-    const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-    const target = new Date(Date.UTC(part('year'), part('month') - 1 + months, 1));
-    const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-    target.setUTCDate(Math.min(part('day'), lastDay));
-    return target.toISOString().slice(0, 10);
-  }
-
   function borrowerView(applicationId: string): BorrowerView {
     const app = requireApplication(applicationId);
-    const decision = latestDecision(app.id);
-    const suggestion = getSuggestion(app.id);
+    const decision = listDecisions(app.id).at(-1);
     if (!decision) return { application: app, outcome: { kind: 'in_review' } };
     if (decision.outcome === 'approved' && decision.offer) {
-      return { application: app, outcome: { kind: 'approved', offer: decision.offer, reasons: suggestion?.reasons ?? [] } };
+      return { application: app, outcome: { kind: 'approved', offer: decision.offer } };
     }
-    const chosen = config.declineReasons.find((r) => r.id === decision.declineReasonId);
+    const reason = config.declineReasons.find((r) => r.id === decision.declineReasonId);
     return {
       application: app,
-      outcome: chosen
-        ? { kind: 'declined', reasons: [chosen.label], whatWouldChange: chosen.whatWouldChange }
-        : {
-            kind: 'declined',
-            reasons: suggestion?.reasons.map((r) => r.text) ?? [],
-            whatWouldChange: suggestion?.whatWouldChange ?? [],
-          },
+      outcome: {
+        kind: 'declined',
+        reasons: [reason?.label ?? decision.applicantReason ?? ''].filter(Boolean),
+        whatWouldChange: reason?.whatWouldChange ?? [],
+      },
     };
   }
 
-  // ---- reviewer writes -----------------------------------------------------
+  // ---- reviewer --------------------------------------------------------------
 
+  // Uploads never feed a suggestion (rule 2), so a person makes every decision
+  // and always writes why (rule 5).
   function decide(applicationId: string, body: unknown): Decision {
     const app = requireApplication(applicationId);
     if (app.status === 'decided') {
       throw new ApiProblem(409, 'This application already has a logged decision. Decisions are append-only.');
     }
-    const suggestion = getSuggestion(app.id);
-    const record = recordFor(app);
-    if (!suggestion || suggestion.outcome === 'none' || !record) {
-      throw new ApiProblem(409, 'Nothing here is verified at source, so no decision can be logged. Ask for a source connection first.');
-    }
+    const record = app.evidenceRecordId ? state.records.get(app.evidenceRecordId) : undefined;
+    if (!record) throw new ApiProblem(409, 'There’s no sealed evidence record to decide on.');
 
     const b: Partial<DecisionRequest> = isRecord(body) ? body : {};
     const fields: FieldErrors = {};
-    const note = text(b.overrideNote);
-    const noteMessage = 'Write why you’re overriding the suggestion. It’s saved with the decision.';
-    const base = {
-      id: `D-${app.id}-${listDecisions(app.id).length + 1}`,
-      applicationId: app.id,
-      evidenceRecordId: record.id,
-      reviewerId: data.currentReviewerId,
-      decidedAt: now(),
-    };
-    let decision: Decision;
+    const note = text(b.note);
+    if (!note) fields.note = 'Write why you’re deciding this way. It’s saved with the decision.';
 
-    if (b.mode === 'follow') {
-      decision =
-        suggestion.outcome === 'approve' && suggestion.offer
-          ? { ...base, outcome: 'approved', offer: suggestion.offer, followedSuggestion: true }
-          : { ...base, outcome: 'declined', applicantReason: suggestion.reasons[0]?.text ?? '', followedSuggestion: true };
-    } else if (b.mode === 'adjust') {
+    let terms: Pick<Decision, 'outcome' | 'offer' | 'applicantReason' | 'declineReasonId'>;
+    if (b.outcome === 'approved') {
       const { min, max } = config.pricing.reviewerAdjustRange;
       const amount = b.amount;
       if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < min || amount > max) {
-        fields.amount = `Enter an amount between ${money.format(min)} and ${money.format(max)}.`;
-      } else if (suggestion.outcome === 'approve' && amount === suggestion.offer?.amount) {
-        fields.amount = 'That’s the suggested amount. Use “Approve as suggested” instead.';
+        fields.amount = rangeMessage();
       }
-      if (!note) fields.overrideNote = noteMessage;
-      if (Object.keys(fields).length) throw new ApiProblem(422, 'Check the highlighted fields', fields);
-      decision = {
-        ...base,
-        outcome: 'approved',
-        offer: quote(amount as number, config.pricing),
-        followedSuggestion: false,
-        overrideNote: note,
-      };
-    } else if (b.mode === 'decline') {
+      terms = { outcome: 'approved', offer: fields.amount ? undefined : quote(amount as number, config.pricing) };
+    } else if (b.outcome === 'declined') {
       const reason = config.declineReasons.find((r) => r.id === b.declineReasonId);
-      const overriding = suggestion.outcome !== 'decline';
       if (!reason) fields.declineReasonId = 'Choose the reason the applicant will see.';
-      if (overriding && !note) fields.overrideNote = noteMessage;
-      if (Object.keys(fields).length) throw new ApiProblem(422, 'Check the highlighted fields', fields);
-      decision = {
-        ...base,
-        outcome: 'declined',
-        applicantReason: reason!.label,
-        declineReasonId: reason!.id,
-        followedSuggestion: !overriding,
-        ...(note ? { overrideNote: note } : {}),
-      };
+      terms = { outcome: 'declined', applicantReason: reason?.label, declineReasonId: reason?.id };
     } else {
-      throw new ApiProblem(422, 'mode must be follow, adjust or decline');
+      throw new ApiProblem(422, 'outcome must be approved or declined');
     }
+    if (Object.keys(fields).length) throw new ApiProblem(422, 'Check the highlighted fields', fields);
 
+    const decision: Decision = {
+      id: `D-${app.id}-${listDecisions(app.id).length + 1}`,
+      applicationId: app.id,
+      evidenceRecordId: record.id,
+      ...terms,
+      followedSuggestion: false,
+      overrideNote: note,
+      reviewerId: data.currentReviewerId,
+      decidedAt: now(),
+    };
     state.decisions.push(decision);
     app.status = 'decided';
     return decision;
-  }
-
-  function requestSource(applicationId: string, body: unknown): Application {
-    const app = requireApplication(applicationId);
-    const kind = isRecord(body) ? body.kind : undefined;
-    if (kind !== 'payroll' && kind !== 'bank_or_payroll') throw new ApiProblem(422, 'Unknown source request');
-    if (app.status === 'decided') throw new ApiProblem(409, 'This application is already decided');
-    if (!app.sourceRequests.some((r) => r.kind === kind)) {
-      const request: SourceRequest = { kind, requestedAt: now(), reviewerId: data.currentReviewerId };
-      app.sourceRequests.push(request);
-    }
-    return app;
   }
 
   function quoteAmount(rawAmount: string | null): Offer {
     const amount = Number(rawAmount);
     const { min, max } = config.pricing.reviewerAdjustRange;
     if (!Number.isInteger(amount) || amount < min || amount > max) {
-      throw new ApiProblem(422, `Enter an amount between ${money.format(min)} and ${money.format(max)}.`, {
-        amount: `Enter an amount between ${money.format(min)} and ${money.format(max)}.`,
-      });
+      throw new ApiProblem(422, rangeMessage(), { amount: rangeMessage() });
     }
     return quote(amount, config.pricing);
   }
@@ -488,13 +377,16 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
         sampleData: true,
         demo: {
           sampleApplicant: data.sampleApplicant,
-          profiles: data.sampleProfiles.map((p) => ({ id: p.id, label: p.label })),
+          sampleStatements: data.sampleStatements.filter((s) => s.forBorrowers).map((s) => ({ id: s.id, label: s.label })),
         },
       };
     },
+    getSampleStatement(id: string) {
+      const sample = data.sampleStatements.find((s) => s.id === id && s.forBorrowers);
+      return sample ? { fileName: sample.fileName, csv: sample.csv } : undefined;
+    },
     getCurrentReviewer: () => data.reviewers.find((r) => r.id === data.currentReviewerId),
     listReviewers: () => data.reviewers,
-    listInstitutions: () => data.institutions,
     listApplications: () =>
       [...state.applications.values()]
         .filter((a) => a.status !== 'draft')
@@ -504,17 +396,14 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       return app && app.status !== 'draft' ? app : undefined;
     },
     getEvidenceRecord: (id: string) => state.records.get(id),
-    getSuggestion,
     listDecisions: (id: string) => (state.applications.has(id) ? listDecisions(id) : undefined),
     borrowerView,
     quoteAmount,
     createApplication,
-    connect,
-    addUpload,
+    uploadStatement,
     submit,
     borrowerRequest,
     decide,
-    requestSource,
     reset() {
       state = load();
     },

@@ -33,8 +33,8 @@ export function validateProductConfig(c: ProductConfig): string[] {
   } else if (!options.includes(c.borrower.defaultAmount)) {
     problems.push('borrower.defaultAmount must be one of borrower.amountOptions');
   }
-  if (!isWholePositive(c.borrower?.historyMonths)) {
-    problems.push('borrower.historyMonths must be a positive whole number');
+  if (!isWholePositive(c.borrower?.minimumStatementMonths)) {
+    problems.push('borrower.minimumStatementMonths must be a positive whole number');
   }
   if (!isWholePositive(c.borrower?.recheckMonths)) {
     problems.push('borrower.recheckMonths must be a positive whole number');

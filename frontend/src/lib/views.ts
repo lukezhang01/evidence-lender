@@ -1,7 +1,7 @@
 // View models for client components, built on the server so every string is
 // formatted once, with the backend's locale, currency and time zone.
 import type { DraftEvidence, EvidenceCategory } from '@evidence-lender/backend/contract';
-import { provenanceLine } from './evidence';
+import { provenanceLine, statementLine } from './evidence';
 import type { Formatters } from './format';
 import { categories, figures } from './labels';
 
@@ -20,19 +20,18 @@ export interface FoundFact {
 }
 
 export interface FoundView {
-  institutionName: string | null;
+  statementLine: string;
   tiles: FoundTile[];
   factsByCategory: { key: EvidenceCategory; title: string; facts: FoundFact[] }[];
   factCount: number;
-  uploads: FoundFact[];
+  blindSpots: { title: string; note: string }[];
 }
 
-// The borrower sees the same facts the reviewer will: tiles summarize the
-// verified facts that carry a figure, and the full list is one tap away.
+// The borrower sees the same facts the reviewer will: tiles summarize the facts
+// that carry a figure, and the full list is one tap away.
 export function buildFoundView(draft: DraftEvidence, format: Formatters): FoundView {
-  const verified = draft.items.filter((i) => i.verified);
   const tiles = figures.flatMap((f) => {
-    const item = verified.find((i) => i.figure?.name === f.name);
+    const item = draft.items.find((i) => i.figure?.name === f.name);
     if (!item?.figure) return [];
     return [
       {
@@ -44,20 +43,17 @@ export function buildFoundView(draft: DraftEvidence, format: Formatters): FoundV
       },
     ];
   });
-  const toFact = (i: (typeof draft.items)[number]): FoundFact => ({
-    id: i.id,
-    statement: i.statement,
-    provenance: provenanceLine(i, format),
-  });
   return {
-    institutionName: draft.application.connection?.institutionName ?? null,
+    statementLine: draft.application.statement ? statementLine(draft.application.statement, format) : '',
     tiles,
     factsByCategory: categories.map((c) => ({
       key: c.key,
       title: c.title,
-      facts: verified.filter((i) => i.category === c.key).map(toFact),
+      facts: draft.items
+        .filter((i) => i.category === c.key)
+        .map((i) => ({ id: i.id, statement: i.statement, provenance: provenanceLine(i, format) })),
     })),
-    factCount: verified.length,
-    uploads: draft.items.filter((i) => !i.verified).map(toFact),
+    factCount: draft.items.length,
+    blindSpots: draft.blindSpots,
   };
 }

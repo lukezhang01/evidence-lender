@@ -2,13 +2,7 @@
 
 // Server Actions: the only way the browser changes anything. Each one forwards
 // to the backend, which re-validates every rule; nothing here is trusted input.
-import type {
-  Applicant,
-  BorrowerRequest,
-  DecisionRequest,
-  FieldErrors,
-  SourceRequest,
-} from '@evidence-lender/backend/contract';
+import type { Applicant, BorrowerRequest, DecisionRequest, FieldErrors } from '@evidence-lender/backend/contract';
 import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import * as api from './api';
@@ -19,44 +13,43 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; message: stri
 
 const failure = (r: { message: string; fields: FieldErrors }) => ({ ok: false as const, message: r.message, fields: r.fields });
 
-async function formatters() {
-  return createFormatters(await api.getConfig());
-}
-
-export async function connectBankAction(input: {
+interface StatementInput {
   applicationId: string | null;
   applicant: Applicant;
   requestedAmount: number;
-  institutionId: string;
-  profileId: string | null;
-}): Promise<ActionResult<{ applicationId: string; found: FoundView }>> {
+}
+
+type UploadResult =
+  | { ok: true; data: { applicationId: string; found: FoundView } }
+  | { ok: false; message: string; fields: FieldErrors; applicationId: string | null };
+
+// Creates the draft application on the first upload; later uploads replace the
+// file. The draft's id comes back even when the file is rejected, so a retry
+// reuses it instead of starting another application.
+async function upload(input: StatementInput, file: { fileName: string; csv: string }): Promise<UploadResult> {
   let id = input.applicationId;
   if (!id) {
     const created = await api.createApplication({ applicant: input.applicant, requestedAmount: input.requestedAmount });
-    if (!created.ok) return failure(created);
+    if (!created.ok) return { ...failure(created), applicationId: null };
     id = created.data.id;
   }
-  const connected = await api.connectBank(id, {
-    institutionId: input.institutionId,
-    ...(input.profileId ? { profileId: input.profileId } : {}),
-  });
-  if (!connected.ok) return failure(connected);
-  return { ok: true, data: { applicationId: id, found: buildFoundView(connected.data, await formatters()) } };
+  const uploaded = await api.uploadStatement(id, { fileName: String(file.fileName), csv: String(file.csv) });
+  if (!uploaded.ok) return { ...failure(uploaded), applicationId: id };
+  const format = createFormatters(await api.getConfig());
+  return { ok: true, data: { applicationId: id, found: buildFoundView(uploaded.data, format) } };
 }
 
-// Only the file's name, type and size are sent; storing documents arrives with
-// persistence (build order step 6).
-export async function addUploadAction(
-  applicationId: string,
-  file: { name: string; type: string; size: number },
-): Promise<ActionResult<FoundView>> {
-  const uploaded = await api.addUpload(applicationId, {
-    fileName: String(file.name),
-    contentType: String(file.type),
-    sizeBytes: Number(file.size) || 0,
-  });
-  if (!uploaded.ok) return failure(uploaded);
-  return { ok: true, data: buildFoundView(uploaded.data, await formatters()) };
+export async function uploadStatementAction(input: StatementInput, file: { fileName: string; csv: string }) {
+  return upload(input, file);
+}
+
+// Sample mode only: uploads one of the backend's sample statements.
+export async function uploadSampleStatementAction(input: StatementInput, sampleId: string) {
+  const sample = await api.getSampleStatement(sampleId);
+  if (!sample) {
+    return { ...failure({ message: 'That sample statement isn’t available.', fields: {} }), applicationId: input.applicationId };
+  }
+  return upload(input, sample);
 }
 
 export async function submitApplicationAction(
@@ -85,20 +78,10 @@ export async function decideAction(applicationId: string, request: DecisionReque
   return { ok: true, data: null };
 }
 
-export async function requestSourceAction(
-  applicationId: string,
-  kind: SourceRequest['kind'],
-): Promise<ActionResult<null>> {
-  const result = await api.requestSource(applicationId, kind);
-  if (!result.ok) return failure(result);
-  refresh();
-  return { ok: true, data: null };
-}
-
 export async function quoteAction(amount: number): Promise<{ monthlyPayment: string } | null> {
   if (!Number.isInteger(amount)) return null;
   const offer = await api.getQuote(amount);
-  return offer ? { monthlyPayment: (await formatters()).money(offer.monthlyPayment) } : null;
+  return offer ? { monthlyPayment: createFormatters(await api.getConfig()).money(offer.monthlyPayment) } : null;
 }
 
 export async function resetDemoAction(): Promise<void> {
