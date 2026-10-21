@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lender review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F3}
+a{color:#0F5C4E}a:hover{color:#0B4A3F}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #0F5C4E;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F5F6F3; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15201C">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #DCE1DD">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="width: 30px; height: 30px; border-radius: 8px; background: #0F5C4E; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</div>
+<span style="font-size: 17px; font-weight: 600">[Brand]</span>
+</div>
+<span style="width: 1px; height: 20px; background: #DCE1DD"></span>
+<span style="font-size: 15px; font-weight: 500; color: #3E4A45">Review queue</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<a href="Main.dc.html" style="font-size: 14px; font-weight: 500">Borrower view</a>
+<span style="font-size: 12px; font-weight: 500; color: #3E4A45; background: #E8EBE8; padding: 5px 10px; border-radius: 999px">Demo · sample data</span>
+<span style="width: 32px; height: 32px; border-radius: 50%; background: #E3EFEB; color: #0B4A3F; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center" aria-label="Signed in as reviewer">RV</span>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; padding: 24px 28px 56px; max-width: 1440px; margin: 0 auto; box-sizing: border-box">
+
+<aside style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">Applications</h2>
+<span style="font-size: 13px; color: #5F6B66">{{readyCount}} ready</span>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 6px; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{queue}}" as="q" hint-placeholder-count="5">
+<button type="button" onClick="{{q.pick}}" aria-current="{{q.current}}" style="{{q.style}}">
+<span style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%"><span style="font-size: 15px; font-weight: 600">{{q.name}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5F6B66">#{{q.id}}</span></span>
+<span style="font-size: 13px; color: #4A5752">{{q.meta}}</span>
+<span style="{{q.statusStyle}}">{{q.status}}</span>
+</button>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.55; color: #5F6B66">Every fact is labelled with where it came from. Uploaded documents never outrank data from the source.</p>
+</aside>
+
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px">
+
+<sc-if value="{{isMain}}" hint-placeholder-val="{{ true }}">
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<div style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 600">Jordan Lee</h1>
+<span style="font-size: 14px; color: #4A5752">Application 4821 · requested $4,000 · submitted Oct 20, 2026, 8:21 PM</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #ECEEEB; color: #3E4A45">No Canadian bureau file</span>
+<span style="font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #E3EFEB; color: #0B4A3F">Bank connected</span>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 10px 12px; background: #F5F6F3; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3E4A45">
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Evidence record ER-4821</span>
+<span>11 facts · 3 sources</span>
+<span>Sealed Oct 20, 2026 8:21 PM</span>
+<span>sha256 a91c…e04f</span>
+</div>
+</div>
+
+<sc-for list="{{sections}}" as="x" hint-placeholder-count="4">
+<section style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 600">{{x.title}}</h2>
+<span style="font-size: 14px; color: #4A5752">{{x.q}}</span>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #E3EFEB; color: #0B4A3F"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>Verified at source</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{x.facts}}" as="f" hint-placeholder-count="3">
+<div style="display: flex; gap: 10px; align-items: flex-start">
+<span style="flex: none; color: #0F5C4E; display: flex; padding-top: 3px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-size: 15px; line-height: 1.45">{{f.text}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.5; color: #5F6B66">{{f.src}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+<button type="button" onClick="{{x.toggle}}" aria-expanded="{{x.expanded}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; background: none; border: 0; padding: 0; color: #0F5C4E; font-size: 14px; font-weight: 500">
+{{x.toggleLabel}}
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{x.chev}}"><polyline points="6 9 12 15 18 9"></polyline></svg>
+</button>
+<sc-if value="{{x.isOpen}}" hint-placeholder-val="{{ false }}">
+<div style="border: 1px solid #E6EAE7; border-radius: 10px; overflow-x: auto">
+<div style="min-width: 480px">
+<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr) 110px; gap: 12px; padding: 9px 14px; background: #F5F6F3; font-size: 12px; font-weight: 500; color: #5F6B66">
+<span>Date</span><span>Record</span><span style="text-align: right">{{x.lastCol}}</span>
+</div>
+<sc-for list="{{x.rows}}" as="r" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr) 110px; gap: 12px; padding: 10px 14px; border-top: 1px solid #E6EAE7; font-size: 13px; line-height: 1.45">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #3E4A45">{{r.date}}</span>
+<span>{{r.desc}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right">{{r.amt}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</section>
+</sc-for>
+
+<section style="background: #FFFFFF; border: 1px solid #E5CFA3; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 600">Not verified</h2>
+<span style="font-size: 14px; color: #4A5752">Shown for context. Not used in the suggestion.</span>
+</div>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #FBEFD9; color: #7A4A06"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3z"></path><line x1="12" y1="10" x2="12" y2="14"></line><line x1="12" y1="17" x2="12" y2="17.01"></line></svg>Uploaded document</span>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex: none; color: #7A4A06; display: flex; padding-top: 2px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5z"></path><polyline points="14 3 14 8 19 8"></polyline></svg></span>
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-size: 15px; line-height: 1.45">Employment letter.pdf says $54,000 a year</span>
+<span style="font-size: 14px; line-height: 1.45; color: #4A5752">Can’t be traced to its source. Bank deposits already confirm pay, so this adds little.</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5F6B66">Uploaded by applicant · Oct 20, 2026 8:19 PM</span>
+</div>
+</div>
+<sc-if value="{{notRequested}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{requestPayroll}}" style="align-self: flex-start; height: 40px; padding: 0 14px; border: 1px solid #C9D1CC; border-radius: 10px; background: #FFFFFF; color: #15201C; font-size: 14px; font-weight: 500">Ask for a payroll connection instead</button>
+</sc-if>
+<sc-if value="{{requested}}" hint-placeholder-val="{{ false }}">
+<span style="align-self: flex-start; font-size: 13px; color: #0B4A3F; background: #E3EFEB; padding: 6px 10px; border-radius: 8px">Request sent to the applicant</span>
+</sc-if>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 600">Blind spots</h2>
+<span style="font-size: 14px; color: #4A5752">What this evidence can’t tell you. Weigh it before you decide.</span>
+</div>
+<span style="font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #ECEEEB; color: #3E4A45">Not visible to us</span>
+</div>
+<sc-for list="{{blind}}" as="b" hint-placeholder-count="3">
+<div style="display: flex; gap: 10px; align-items: flex-start">
+<span style="flex: none; color: #5F6B66; display: flex; padding-top: 2px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14"></path><line x1="12" y1="17" x2="12" y2="17.01"></line></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; line-height: 1.45">{{b.title}}</span>
+<span style="font-size: 13px; line-height: 1.45; color: #4A5752">{{b.note}}</span>
+</div>
+</div>
+</sc-for>
+</section>
+
+</div>
+
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{notDecided}}" hint-placeholder-val="{{ true }}">
+<div style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 500; color: #5F6B66">Suggested decision</span>
+<h2 style="margin: 0; font-size: 22px; line-height: 1.25; font-weight: 600">Approve $3,000</h2>
+<span style="font-size: 14px; line-height: 1.5; color: #4A5752">18 months at 24.9% APR. Can rise to $6,000 after 6 on-time payments.</span>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{metrics}}" as="m" hint-placeholder-count="3">
+<div style="{{m.style}}"><span style="font-size: 14px; color: #4A5752">{{m.label}}</span><span style="font-size: 15px; font-weight: 600">{{m.value}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14px; font-weight: 600">Top reasons</span>
+<sc-for list="{{why}}" as="w" hint-placeholder-count="3">
+<div style="display: flex; gap: 10px; align-items: flex-start">
+<span style="{{w.tagStyle}}">{{w.tag}}</span>
+<span style="font-size: 14px; line-height: 1.5">{{w.text}}</span>
+</div>
+</sc-for>
+<span style="font-size: 12px; line-height: 1.5; color: #5F6B66">These are the reasons the applicant sees, in plain words.</span>
+</div>
+
+<sc-if value="{{isIdle}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" onClick="{{approve}}" style="height: 48px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 15px; font-weight: 600">Approve as suggested</button>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button type="button" onClick="{{startAdjust}}" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 15px; font-weight: 500">Adjust terms</button>
+<button type="button" onClick="{{startDecline}}" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 15px; font-weight: 500">Decline</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isOverride}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px; padding-top: 16px; border-top: 1px solid #E6EAE7">
+<span style="font-size: 15px; font-weight: 600">{{overrideTitle}}</span>
+<sc-if value="{{isAdjust}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-amt" style="font-size: 14px; font-weight: 500">New amount</label>
+<input id="f-amt" type="text" inputMode="numeric" value="{{adjAmount}}" onChange="{{onAdj}}" style="height: 44px; box-sizing: border-box; width: 100%; padding: 0 12px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 15px; color: #15201C; background: #FFFFFF">
+<span style="font-size: 12px; color: #5F6B66">Between $500 and $6,000. Payment: {{adjPay}} a month.</span>
+</div>
+</sc-if>
+<sc-if value="{{isDecline}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-dr" style="font-size: 14px; font-weight: 500">Reason the applicant sees</label>
+<select id="f-dr" value="{{declineReason}}" onChange="{{onDeclineReason}}" style="height: 44px; box-sizing: border-box; width: 100%; padding: 0 10px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 15px; color: #15201C; background: #FFFFFF">
+<option value="">Choose a reason</option>
+<option value="Not enough left over after bills">Not enough left over after bills</option>
+<option value="Income couldn’t be confirmed">Income couldn’t be confirmed</option>
+<option value="Identity couldn’t be confirmed">Identity couldn’t be confirmed</option>
+<option value="Other, explained to the applicant directly">Other, explained to the applicant directly</option>
+</select>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-reason" style="font-size: 14px; font-weight: 500">Why are you overriding the suggestion?</label>
+<textarea id="f-reason" rows="3" placeholder="Applicant told us about a second job at another bank" value="{{reason}}" onChange="{{onReason}}" style="box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 14px; line-height: 1.5; color: #15201C; background: #FFFFFF; resize: vertical"></textarea>
+<span style="font-size: 12px; color: #5F6B66">Required. Saved with the decision for audit and model review.</span>
+</div>
+<sc-if value="{{hasErr}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 13px; color: #A12C1F">{{err}}</span>
+</sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button type="button" onClick="{{confirm}}" style="height: 44px; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 15px; font-weight: 600">{{confirmLabel}}</button>
+<button type="button" onClick="{{cancel}}" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 15px; font-weight: 500">Cancel</button>
+</div>
+</div>
+</sc-if>
+
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5F6B66">Model [version] · last validated [date]</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isDecided}}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 6px; background: #E3EFEB; color: #0B4A3F"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Decision logged</span>
+<h2 style="margin: 0; font-size: 22px; line-height: 1.25; font-weight: 600">{{decidedTitle}}</h2>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{decidedRows}}" as="d" hint-placeholder-count="6">
+<div style="{{d.style}}"><span style="flex: none; font-size: 13px; color: #5F6B66">{{d.label}}</span><span style="font-size: 14px; font-weight: 500; text-align: right; min-width: 0">{{d.value}}</span></div>
+</sc-for>
+</div>
+<button type="button" onClick="{{undo}}" style="align-self: flex-start; min-height: 36px; background: none; border: 0; padding: 0; color: #4A5752; font-size: 13px; text-decoration: underline; text-underline-offset: 3px">Undo (demo only)</button>
+</div>
+</sc-if>
+
+</div>
+</sc-if>
+
+<sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 999 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<span style="{{other.badgeStyle}}">{{other.status}}</span>
+<h1 style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 600">{{other.name}}</h1>
+<span style="font-size: 14px; color: #4A5752">{{other.meta}}</span>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; max-width: 60ch">{{other.body}}</p>
+<button type="button" onClick="{{open4821}}" style="align-self: flex-start; height: 44px; padding: 0 16px; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 15px; font-weight: 500">Open application 4821</button>
+</div>
+</sc-if>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = this.initial();
+  }
+  initial() {
+    return { sel: '4821', open: {}, mode: '', reason: '', declineReason: '', adjAmount: '3000', err: '', decided: null, requested: false };
+  }
+  money(n, dec) {
+    return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+  pmt(p, apr, n) {
+    const r = apr / 12;
+    return Math.round((p * r / (1 - Math.pow(1 + r, -n))) * 100) / 100;
+  }
+  badge(tone) {
+    const base = 'align-self: flex-start; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; ';
+    if (tone === 'ok') return base + 'background: #E3EFEB; color: #0B4A3F';
+    if (tone === 'warn') return base + 'background: #FBEFD9; color: #7A4A06';
+    return base + 'background: #ECEEEB; color: #3E4A45';
+  }
+  parseAmt(v) {
+    const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);
+    return isNaN(n) ? 0 : n;
+  }
+  confirmOverride() {
+    const st = this.state;
+    if (st.mode === 'adjust') {
+      const amt = this.parseAmt(st.adjAmount);
+      if (amt < 500 || amt > 6000) { this.setState({ err: 'Enter an amount between $500 and $6,000.' }); return; }
+      if (!st.reason.trim()) { this.setState({ err: 'Write why you’re overriding the suggestion. It’s saved with the decision.' }); return; }
+      this.setState({ decided: { title: 'Approved with new terms', amount: amt, override: true, note: st.reason.trim(), applicantReason: '' }, mode: '', err: '' });
+      return;
+    }
+    if (!st.declineReason) { this.setState({ err: 'Choose the reason the applicant will see.' }); return; }
+    if (!st.reason.trim()) { this.setState({ err: 'Write why you’re overriding the suggestion. It’s saved with the decision.' }); return; }
+    this.setState({ decided: { title: 'Declined', amount: 0, override: true, note: st.reason.trim(), applicantReason: st.declineReason }, mode: '', err: '' });
+  }
+  renderVals() {
+    const s = this.state;
+    const d = s.decided;
+
+    const queueData = [
+      { id: '4821', name: 'Jordan Lee', meta: '$4,000 · Bank connected', status: 'Ready for review', tone: 'ok' },
+      { id: '4819', name: 'Alex Moreau', meta: '$2,000 · Verifying with payroll', status: 'Waiting on applicant', tone: 'neutral' },
+      { id: '4817', name: 'Taylor Brooks', meta: '$6,000 · Bank connected', status: 'Ready for review', tone: 'ok' },
+      { id: '4815', name: 'Chris Nguyen', meta: '$1,000 · Uploads only', status: 'Can’t verify at source', tone: 'warn' },
+      { id: '4812', name: 'Morgan Diaz', meta: '$3,000 · Bank connected', status: 'Decided', tone: 'neutral' }
+    ];
+    const queue = queueData.map((q) => {
+      const on = q.id === s.sel;
+      const done = q.id === '4821' && !!d;
+      return {
+        id: q.id,
+        name: q.name,
+        meta: q.meta,
+        status: done ? 'Decided' : q.status,
+        statusStyle: this.badge(done ? 'neutral' : q.tone),
+        current: on ? 'true' : 'false',
+        pick: () => this.setState({ sel: q.id }),
+        style: 'display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; padding: 14px 16px; text-align: left; border: 0; border-radius: 10px; color: #15201C; ' + (on ? 'background: #E3EFEB; box-shadow: inset 0 0 0 1px #0F5C4E' : 'background: transparent')
+      };
+    });
+    const readyCount = queue.filter((q) => q.status === 'Ready for review').length;
+
+    const sectionData = [
+      {
+        key: 'identity', title: 'Identity', q: 'Is this person who they say they are?', lastCol: 'Result',
+        facts: [
+          { text: 'Name, address and phone match the bank account holder', src: 'Bank connection · account holder record · Oct 20, 8:16 PM' },
+          { text: 'Government ID matched to a live selfie', src: 'ID check · [ID vendor] · Oct 20, 8:12 PM' }
+        ],
+        rows: [
+          { date: 'Oct 20, 2026 8:12 PM', desc: 'ID document matched to selfie', amt: 'Match' },
+          { date: 'Oct 20, 2026 8:16 PM', desc: 'Account holder name, address, phone', amt: 'Match' }
+        ]
+      },
+      {
+        key: 'capacity', title: 'Capacity', q: 'Is there enough reliable income to cover the payment?', lastCol: 'Amount',
+        facts: [
+          { text: '$4,120 net pay in a typical month, every 2 weeks from one employer', src: 'Bank connection · 24 payroll deposits · Nov 2025–Oct 2026' },
+          { text: '$820 a month left over after bills and spending, on average', src: 'Derived from 12 months of transactions' },
+          { text: 'One short month: March pay was $3,300', src: 'Bank connection · deposit of Mar 27, 2026' }
+        ],
+        rows: [
+          { date: 'Oct 16, 2026', desc: 'Payroll deposit · [Employer]', amt: '$2,060.00' },
+          { date: 'Oct 2, 2026', desc: 'Payroll deposit · [Employer]', amt: '$2,060.00' },
+          { date: 'Sep 18, 2026', desc: 'Payroll deposit · [Employer]', amt: '$2,060.00' },
+          { date: 'Mar 27, 2026', desc: 'Payroll deposit · [Employer] · short', amt: '$1,240.00' }
+        ]
+      },
+      {
+        key: 'willingness', title: 'Willingness', q: 'When money is tight, do they keep paying?', lastCol: 'Amount',
+        facts: [
+          { text: 'Rent of $1,650 paid on time 12 of 12 months', src: 'Bank connection · 12 e-Transfers to the same recipient' },
+          { text: 'Phone and hydro paid on time 12 of 12 months', src: 'Bank connection · recurring bill payments' },
+          { text: 'No overdrafts or returned payments in 12 months', src: 'Bank connection · balance history' }
+        ],
+        rows: [
+          { date: 'Oct 1, 2026', desc: 'e-Transfer · rent · [Landlord]', amt: '$1,650.00' },
+          { date: 'Sep 1, 2026', desc: 'e-Transfer · rent · [Landlord]', amt: '$1,650.00' },
+          { date: 'Aug 1, 2026', desc: 'e-Transfer · rent · [Landlord]', amt: '$1,650.00' },
+          { date: 'Jul 2, 2026', desc: 'e-Transfer · rent · [Landlord]', amt: '$1,650.00' }
+        ]
+      },
+      {
+        key: 'resilience', title: 'Resilience', q: 'What happens after a shock?', lastCol: 'Balance',
+        facts: [
+          { text: '$4,620 in savings, about 1.4 months of expenses', src: 'Bank connection · balances · Oct 20' },
+          { text: 'Lowest chequing balance in 12 months was $310, in March', src: 'Bank connection · balance history' }
+        ],
+        rows: [
+          { date: 'Oct 20, 2026', desc: 'Savings account balance', amt: '$4,620.00' },
+          { date: 'Mar 27, 2026', desc: 'Lowest chequing balance', amt: '$310.00' }
+        ]
+      }
+    ];
+    const sections = sectionData.map((x) => {
+      const o = !!s.open[x.key];
+      return {
+        title: x.title,
+        q: x.q,
+        lastCol: x.lastCol,
+        facts: x.facts,
+        rows: x.rows,
+        isOpen: o,
+        expanded: o ? 'true' : 'false',
+        chev: o ? 'transform: rotate(180deg)' : 'transform: none',
+        toggleLabel: (o ? 'Hide' : 'Show') + ' source records (' + x.rows.length + ')',
+        toggle: () => {
+          const n = Object.assign({}, this.state.open);
+          n[x.key] = !n[x.key];
+          this.setState({ open: n });
+        }
+      };
+    });
+
+    const blind = [
+      { title: 'Debts or accounts at other banks', note: 'We only see the bank they connected. Ask about other loans or cards.' },
+      { title: 'No Canadian credit bureau file to cross-check', note: 'Nothing to confirm there are no other obligations.' },
+      { title: 'Cash income, if any', note: 'Would make the picture better, not worse, but we can’t count it.' }
+    ];
+
+    const sugPay = this.pmt(3000, 0.249, 18);
+    const metricRows = [
+      ['Monthly payment', this.money(sugPay, 2)],
+      ['Payment as share of pay', (sugPay / 4120 * 100).toFixed(1) + '%'],
+      ['Left over after payment', this.money(Math.round(820 - sugPay), 0) + ' a month']
+    ];
+    const metrics = metricRows.map((m, i) => ({
+      label: m[0],
+      value: m[1],
+      style: 'display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; ' + (i > 0 ? 'border-top: 1px solid #E6EAE7' : '')
+    }));
+    const tagBase = 'flex: none; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; ';
+    const why = [
+      { tag: 'Helps', tagStyle: tagBase + 'background: #E3EFEB; color: #0B4A3F', text: 'Steady pay, 11 of 12 months' },
+      { tag: 'Helps', tagStyle: tagBase + 'background: #E3EFEB; color: #0B4A3F', text: 'Rent on time, 12 of 12 months' },
+      { tag: 'Hurts', tagStyle: tagBase + 'background: #FBEFD9; color: #7A4A06', text: 'Savings cover about 1.4 months, so start below the $4,000 asked' }
+    ];
+
+    const adjAmt = this.parseAmt(s.adjAmount);
+    const adjPay = adjAmt >= 500 && adjAmt <= 6000 ? this.money(this.pmt(adjAmt, 0.249, 18), 2) : '—';
+
+    let decidedRows = [];
+    if (d) {
+      const rows = [];
+      if (d.amount) {
+        rows.push(['Amount', this.money(d.amount, 0)]);
+        rows.push(['Monthly payment', this.money(this.pmt(d.amount, 0.249, 18), 2)]);
+      }
+      if (d.applicantReason) rows.push(['Reason sent to applicant', d.applicantReason]);
+      rows.push(['Followed suggestion', d.override ? 'No, overridden' : 'Yes']);
+      if (d.note) rows.push(['Reviewer note', d.note]);
+      rows.push(['Logged', 'Oct 20, 2026, 8:32 PM · by you']);
+      rows.push(['Evidence', 'ER-4821 · 11 facts · sha256 a91c…e04f']);
+      decidedRows = rows.map((r, i) => ({
+        label: r[0],
+        value: r[1],
+        style: 'display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; ' + (i > 0 ? 'border-top: 1px solid #E6EAE7' : '')
+      }));
+    }
+
+    const others = {
+      '4819': { name: 'Alex Moreau', meta: 'Application 4819 · requested $2,000', status: 'Waiting on applicant', tone: 'neutral', body: 'Alex chose to verify through their payroll account instead of a bank connection. There’s nothing to review until that data arrives.' },
+      '4817': { name: 'Taylor Brooks', meta: 'Application 4817 · requested $6,000', status: 'Ready for review', tone: 'ok', body: 'Ready for review. This demo includes full detail for application 4821 only.' },
+      '4815': { name: 'Chris Nguyen', meta: 'Application 4815 · requested $1,000', status: 'Can’t verify at source', tone: 'warn', body: 'Every piece of evidence here is an uploaded document, so none of it can be traced to its source. No suggestion is made. Ask the applicant to connect a bank or payroll account.' },
+      '4812': { name: 'Morgan Diaz', meta: 'Application 4812 · requested $3,000', status: 'Decided', tone: 'neutral', body: 'Approved on Oct 19 by a reviewer. The decision and its evidence record are locked.' }
+    };
+    const o = others[s.sel];
+
+    return {
+      queue: queue,
+      readyCount: readyCount,
+      isMain: s.sel === '4821',
+      isOther: s.sel !== '4821',
+      sections: sections,
+      blind: blind,
+      notRequested: !s.requested,
+      requested: s.requested,
+      requestPayroll: () => this.setState({ requested: true }),
+      metrics: metrics,
+      why: why,
+      notDecided: !d,
+      isDecided: !!d,
+      isIdle: !s.mode,
+      isOverride: !!s.mode,
+      isAdjust: s.mode === 'adjust',
+      isDecline: s.mode === 'decline',
+      overrideTitle: s.mode === 'adjust' ? 'Adjust terms' : 'Decline application',
+      confirmLabel: s.mode === 'adjust' ? 'Confirm terms' : 'Confirm decline',
+      approve: () => this.setState({ decided: { title: 'Approved as suggested', amount: 3000, override: false, note: '', applicantReason: '' }, mode: '', err: '' }),
+      startAdjust: () => this.setState({ mode: 'adjust', err: '' }),
+      startDecline: () => this.setState({ mode: 'decline', err: '' }),
+      cancel: () => this.setState({ mode: '', err: '', reason: '', declineReason: '', adjAmount: '3000' }),
+      confirm: () => this.confirmOverride(),
+      adjAmount: s.adjAmount,
+      adjPay: adjPay,
+      onAdj: (e) => this.setState({ adjAmount: e.target.value, err: '' }),
+      declineReason: s.declineReason,
+      onDeclineReason: (e) => this.setState({ declineReason: e.target.value, err: '' }),
+      reason: s.reason,
+      onReason: (e) => this.setState({ reason: e.target.value, err: '' }),
+      hasErr: !!s.err,
+      err: s.err,
+      decidedTitle: d ? d.title : '',
+      decidedRows: decidedRows,
+      undo: () => this.setState({ decided: null, mode: '', reason: '', declineReason: '', adjAmount: '3000', err: '' }),
+      other: o ? { name: o.name, meta: o.meta, status: o.status, body: o.body, badgeStyle: this.badge(o.tone) } : { name: '', meta: '', status: '', body: '', badgeStyle: '' },
+      open4821: () => this.setState({ sel: '4821' })
+    };
+  }
+}
+</script>
+</body>
+</html>

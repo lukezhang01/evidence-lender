@@ -1,0 +1,20 @@
+.hint {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.title {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.back {
+  align-self: flex-start;
+  min-height: var(--control-min);
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+}

@@ -1,0 +1,33 @@
+.button {
+  min-height: var(--control-min);
+  padding: 0 16px;
+  border-radius: var(--radius-button);
+  font-size: 16px;
+}
+
+.borrower {
+  height: var(--button-borrower);
+}
+
+.lender {
+  height: var(--button-lender);
+  font-size: 15px;
+}
+
+.primary {
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  font-weight: 600;
+}
+
+.secondary {
+  border: 1px solid var(--color-input-border);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.fullWidth {
+  width: 100%;
+}

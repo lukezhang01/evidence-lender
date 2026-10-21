@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Borrower application</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F5F6F3}
+a{color:#0F5C4E}a:hover{color:#0B4A3F}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #0F5C4E;outline-offset:2px}
+@keyframes fillbar{from{width:0}to{width:100%}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 40px 20px 72px; display: flex; justify-content: center; font-family: 'IBM Plex Sans', system-ui, sans-serif; color: #15201C; background: #F5F6F3">
+<div style="width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="width: 30px; height: 30px; border-radius: 8px; background: #0F5C4E; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</div>
+<span style="font-size: 17px; font-weight: 600">[Brand]</span>
+</div>
+<span style="font-size: 12px; font-weight: 500; color: #3E4A45; background: #E8EBE8; padding: 5px 10px; border-radius: 999px">Demo · sample data</span>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 24px">
+
+<sc-if value="{{showBack}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<button type="button" onClick="{{goBack}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; background: none; border: 0; padding: 0; color: #0F5C4E; font-size: 14px; font-weight: 500">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+Back
+</button>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; gap: 6px">
+<sc-for list="{{segs}}" as="seg" hint-placeholder-count="4">
+<div style="{{seg.style}}"></div>
+</sc-for>
+</div>
+<span style="font-size: 13px; color: #5F6B66">{{stepLabel}}</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showProgressOnly}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; gap: 6px">
+<sc-for list="{{segs}}" as="seg" hint-placeholder-count="4">
+<div style="{{seg.style}}"></div>
+</sc-for>
+</div>
+<span style="font-size: 13px; color: #5F6B66">{{stepLabel}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isStart}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h1 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em">A loan based on how you handle money today</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #4A5752">New to Canada, or rebuilding after a hard year? We look at your income and the bills you already pay on time, not just a credit score.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14px; font-weight: 500">How much do you need?</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{amounts}}" as="a" hint-placeholder-count="4">
+<button type="button" onClick="{{a.pick}}" aria-pressed="{{a.pressed}}" style="{{a.style}}">{{a.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #F5F6F3; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 500; color: #5F6B66">How it works</span>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FFFFFF; border: 1px solid #C9D1CC; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">1</span>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Tell us who you are</span><span style="font-size: 14px; color: #4A5752">Three fields, about a minute</span></div>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FFFFFF; border: 1px solid #C9D1CC; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">2</span>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Connect your bank</span><span style="font-size: 14px; color: #4A5752">Read-only. It replaces pay stubs and statements.</span></div>
+</div>
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex: none; width: 26px; height: 26px; border-radius: 50%; background: #FFFFFF; border: 1px solid #C9D1CC; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">3</span>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Check what we found, then get a decision</span><span style="font-size: 14px; color: #4A5752">You see our numbers before anyone else does.</span></div>
+</div>
+</div>
+<button type="button" onClick="{{goAbout}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Get started</button>
+<p style="margin: 0; font-size: 13px; color: #5F6B66; text-align: center">You don’t need a credit score to apply.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isAbout}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">About you</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">We use these to match your bank account to you. That’s all we ask for.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-name" style="font-size: 14px; font-weight: 500">Full legal name</label>
+<input id="f-name" type="text" value="{{name}}" onChange="{{onName}}" style="height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 16px; color: #15201C; background: #FFFFFF">
+<sc-if value="{{hasNameErr}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 13px; color: #A12C1F">Enter your full legal name.</span>
+</sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-email" style="font-size: 14px; font-weight: 500">Email</label>
+<input id="f-email" type="email" value="{{email}}" onChange="{{onEmail}}" style="height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 16px; color: #15201C; background: #FFFFFF">
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-phone" style="font-size: 14px; font-weight: 500">Mobile number</label>
+<input id="f-phone" type="tel" value="{{phone}}" onChange="{{onPhone}}" style="height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 16px; color: #15201C; background: #FFFFFF">
+</div>
+<button type="button" onClick="{{goConsent}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Continue</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isConsent}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">Show us your real income</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">Connect your bank and we’ll read the last 12 months. It replaces pay stubs and statements, and it’s how we can say yes without a credit score.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="padding: 18px; border-radius: 12px; background: #EEF5F2; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 14px; font-weight: 600; color: #0B4A3F">What we read</span>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #0F5C4E; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Pay deposits</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #0F5C4E; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Rent and bills you pay</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #0F5C4E; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Balances over time</div>
+</div>
+<div style="padding: 18px; border-radius: 12px; background: #F5F6F3; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 14px; font-weight: 600; color: #15201C">What we can’t do</span>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #5F6B66; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>Move money</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #5F6B66; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>See your password</div>
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4"><span style="flex: none; color: #5F6B66; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>Keep reading after you disconnect</div>
+</div>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; color: #4A5752">
+<span style="flex: none; color: #0F5C4E; display: flex; padding-top: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+<span>You’ll see everything we found before you submit, and you can correct it.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" onClick="{{goBank}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Connect bank</button>
+<button type="button" onClick="{{goManual}}" style="min-height: 44px; width: 100%; background: none; border: 0; color: #0F5C4E; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px">Verify another way</button>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5F6B66; text-align: center">Read-only access · Disconnect any time</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isBank}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">Choose your bank</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">You’ll sign in on your bank’s own page. We never see your password.</p>
+</div>
+<input type="search" aria-label="Search banks" placeholder="RBC, Desjardins, Tangerine" value="{{q}}" onChange="{{onQ}}" style="height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 16px; color: #15201C; background: #FFFFFF">
+<div style="border: 1px solid #DCE1DD; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column">
+<sc-for list="{{banks}}" as="b" hint-placeholder-count="9">
+<button type="button" onClick="{{b.pick}}" style="{{b.style}}">
+<span style="display: flex; align-items: center; gap: 12px">
+<span style="flex: none; width: 34px; height: 34px; border-radius: 8px; background: #F5F6F3; color: #3E4A45; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 4l9 6"></path><line x1="5" y1="10" x2="5" y2="18"></line><line x1="10" y1="10" x2="10" y2="18"></line><line x1="14" y1="10" x2="14" y2="18"></line><line x1="19" y1="10" x2="19" y2="18"></line><line x1="3" y1="20" x2="21" y2="20"></line></svg></span>
+{{b.name}}
+</span>
+<span style="flex: none; color: #5F6B66; display: flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"></polyline></svg></span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isConnecting}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 22px; padding: 8px 0">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">Connecting to {{bankName}}</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">Reading 12 months of activity. This takes a few seconds.</p>
+</div>
+<div style="height: 6px; border-radius: 3px; background: #E6EAE7; overflow: hidden"><div style="height: 100%; width: 0; background: #0F5C4E; animation: fillbar 2.4s ease-out forwards"></div></div>
+<div style="display: flex; flex-direction: column; gap: 12px; font-size: 15px; color: #4A5752">
+<span>Pay deposits</span>
+<span>Rent and recurring bills</span>
+<span>Balance history</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isFound}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">Here’s what we found</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">This is exactly what a reviewer will see. If something’s wrong, tell us before you submit.</p>
+</div>
+<div style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: #EEF5F2; color: #0B4A3F; font-family: 'IBM Plex Mono', monospace; font-size: 12px">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+<span>From {{bankName}} · read-only · last 12 months</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{found}}" as="f" hint-placeholder-count="6">
+<div style="padding: 16px; border-radius: 12px; background: #F5F6F3; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5F6B66">{{f.label}}</span>
+<span style="font-size: 24px; font-weight: 600; letter-spacing: -0.01em">{{f.value}}</span>
+<span style="font-size: 13px; line-height: 1.45; color: #4A5752">{{f.note}}</span>
+</div>
+</sc-for>
+</div>
+<div style="border: 1px dashed #B9C3BD; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 15px; font-weight: 500">Something we can’t see?</span>
+<span style="font-size: 14px; color: #4A5752; line-height: 1.5">Income or debts at another bank, or cash income. Add a note or a document.</span>
+<sc-if value="{{hasUpload}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #FFFFFF; border: 1px solid #DCE1DD; border-radius: 10px">
+<span style="flex: none; color: #7A4A06; display: flex"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5z"></path><polyline points="14 3 14 8 19 8"></polyline></svg></span>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 14px; font-weight: 500">Employment letter.pdf</span>
+<span style="font-size: 13px; color: #7A4A06; line-height: 1.4">Checked by a person. Counts for less than data from your bank.</span>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{noUpload}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{addUpload}}" style="align-self: flex-start; height: 44px; padding: 0 16px; border: 1px solid #C9D1CC; border-radius: 10px; background: #FFFFFF; color: #15201C; font-size: 15px; font-weight: 500">Add a note or document</button>
+</sc-if>
+</div>
+<sc-if value="{{wrongOpen}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="f-wrong" style="font-size: 14px; font-weight: 500">What looks wrong?</label>
+<textarea id="f-wrong" rows="3" placeholder="My March pay was lower because I took a week of unpaid leave" value="{{wrong}}" onChange="{{onWrong}}" style="box-sizing: border-box; width: 100%; padding: 12px 14px; border: 1px solid #C9D1CC; border-radius: 10px; font-size: 15px; line-height: 1.5; color: #15201C; background: #FFFFFF; resize: vertical"></textarea>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" onClick="{{submit}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Submit application</button>
+<button type="button" onClick="{{toggleWrong}}" style="min-height: 44px; width: 100%; background: none; border: 0; color: #0F5C4E; font-size: 15px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px">{{wrongLabel}}</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isApproved}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #0B4A3F; background: #E3EFEB; padding: 5px 10px; border-radius: 999px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>Approved</span>
+<h1 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em">You’re approved for {{offerLabel}}</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #4A5752">{{askLine}}</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="border: 1px solid #DCE1DD; border-radius: 12px; padding: 2px 18px">
+<sc-for list="{{terms}}" as="t" hint-placeholder-count="5">
+<div style="{{t.style}}"><span style="font-size: 14px; color: #4A5752">{{t.label}}</span><span style="font-size: 15px; font-weight: 600; text-align: right">{{t.value}}</span></div>
+</sc-for>
+</div>
+<span style="font-size: 12px; color: #5F6B66">Illustrative terms for this demo. [Your pricing] goes here.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 15px; font-weight: 600">Why this amount</span>
+<sc-for list="{{why}}" as="w" hint-placeholder-count="3">
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="{{w.tagStyle}}">{{w.tag}}</span>
+<span style="font-size: 14px; line-height: 1.5; color: #15201C">{{w.text}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; background: #F5F6F3; border-radius: 12px; font-size: 14px; line-height: 1.5; color: #4A5752">
+<span style="flex: none; color: #0F5C4E; display: flex; padding-top: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="16" y1="3" x2="16" y2="7"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="3" y1="11" x2="21" y2="11"></line></svg></span>
+<span>Payments come out the day after your payday, so the money is there. You can change the date any time.</span>
+</div>
+<sc-if value="{{notAccepted}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" onClick="{{accept}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Accept offer</button>
+<button type="button" style="height: 52px; width: 100%; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 16px; font-weight: 500">Talk to someone first</button>
+</div>
+</sc-if>
+<sc-if value="{{accepted}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 10px; align-items: flex-start; padding: 16px; border-radius: 12px; background: #E3EFEB; color: #0B4A3F; font-size: 15px; line-height: 1.5">
+<span style="flex: none; display: flex; padding-top: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+<span>Offer accepted. In the live product, the money goes to your {{bankName}} account and you get your agreement by email.</span>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isDeclined}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="align-self: flex-start; font-size: 13px; font-weight: 600; color: #7A4A06; background: #FBEFD9; padding: 5px 10px; border-radius: 999px">Not yet</span>
+<h1 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em">We can’t approve this today</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #4A5752">Here’s exactly why, and what would change it. This decision didn’t use a credit score.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 15px; font-weight: 600">The main reasons</span>
+<sc-for list="{{reasons}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex: none; width: 24px; height: 24px; border-radius: 50%; background: #F5F6F3; border: 1px solid #DCE1DD; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{r.n}}</span>
+<span style="font-size: 15px; line-height: 1.5">{{r.text}}</span>
+</div>
+</sc-for>
+</div>
+<div style="padding: 18px; border-radius: 12px; background: #EEF5F2; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 15px; font-weight: 600; color: #0B4A3F">What would change it</span>
+<sc-for list="{{fixes}}" as="fx" hint-placeholder-count="3">
+<div style="display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.5"><span style="flex: none; color: #0F5C4E; display: flex; padding-top: 2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span>{{fx.text}}</div>
+</sc-for>
+<span style="font-size: 14px; line-height: 1.5; color: #0B4A3F">With your permission, we’ll check again in 3 months. No new application needed.</span>
+</div>
+<sc-if value="{{notReminded}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" onClick="{{remind}}" style="height: 52px; width: 100%; border: 0; border-radius: 12px; background: #0F5C4E; color: #FFFFFF; font-size: 16px; font-weight: 600">Check again in 3 months</button>
+<button type="button" style="height: 52px; width: 100%; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 16px; font-weight: 500">Ask a person to review</button>
+</div>
+</sc-if>
+<sc-if value="{{reminded}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 16px; border-radius: 12px; background: #E3EFEB; color: #0B4A3F; font-size: 15px; line-height: 1.5">Done. We’ll check again on January 20, 2027 and tell you either way.</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isManual}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 24px; line-height: 1.25; font-weight: 600">Verify another way</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A5752">Connecting your bank is fastest. These work too, but some need a person to review them, so they take longer.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{manual}}" as="m" hint-placeholder-count="3">
+<button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">
+<span style="{{m.dot}}"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">{{m.title}}</span><span style="font-size: 14px; color: #4A5752">{{m.desc}}</span></span>
+</button>
+</sc-for>
+</div>
+<sc-if value="{{manualPicked}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 14px 16px; border-radius: 12px; background: #F5F6F3; font-size: 14px; line-height: 1.5; color: #15201C">{{manualNote}}</div>
+</sc-if>
+<button type="button" onClick="{{goBank}}" style="height: 52px; width: 100%; border: 1px solid #C9D1CC; border-radius: 12px; background: #FFFFFF; color: #15201C; font-size: 16px; font-weight: 500">Connect my bank instead</button>
+</div>
+</sc-if>
+
+</div>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 20px; font-size: 13px">
+<a href="Lender.dc.html" style="font-weight: 500">Open the lender review screen</a>
+<button type="button" onClick="{{restart}}" style="min-height: 36px; background: none; border: 0; padding: 0; color: #4A5752; font-size: 13px; text-decoration: underline; text-underline-offset: 3px">Restart demo</button>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"outcome":{"editor":"enum","options":["approved","declined"],"default":"approved","section":"Demo"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = this.initial();
+  }
+  initial() {
+    return { step: 'start', amount: 4000, name: 'Jordan Lee', email: 'jordan.lee@example.com', phone: '(416) 555-0148', nameErr: false, q: '', bank: '', upload: false, wrongOpen: false, wrong: '', accepted: false, reminded: false, manualChoice: '' };
+  }
+  componentWillUnmount() {
+    clearTimeout(this.timer);
+  }
+  go(step) {
+    this.setState({ step: step });
+  }
+  money(n, dec) {
+    return '$' + n.toLocaleString('en-CA', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+  pmt(p, apr, n) {
+    const r = apr / 12;
+    return p * r / (1 - Math.pow(1 + r, -n));
+  }
+  pickBank(n) {
+    clearTimeout(this.timer);
+    this.setState({ step: 'connecting', bank: n === 'Another bank or credit union' ? '' : n });
+    this.timer = setTimeout(() => this.setState({ step: 'found' }), 2600);
+  }
+  renderVals() {
+    const s = this.state;
+    const outcome = this.props.outcome === 'declined' ? 'declined' : 'approved';
+    const order = { start: 0, about: 1, consent: 2, manual: 2, bank: 2, connecting: 2, found: 3, decision: 4 };
+    const p = order[s.step] || 0;
+    const labels = ['', 'Step 1 of 4 · About you', 'Step 2 of 4 · Connect your bank', 'Step 3 of 4 · Check what we found', 'Step 4 of 4 · Decision'];
+    const back = { about: 'start', consent: 'about', manual: 'consent', bank: 'consent', found: 'bank' };
+    const hasBack = !!back[s.step];
+    const segs = [1, 2, 3, 4].map((i) => ({ style: 'flex: 1; height: 4px; border-radius: 2px; background: ' + (i <= p ? '#0F5C4E' : '#DCE1DD') }));
+
+    const amounts = [1000, 2000, 4000, 6000].map((v) => {
+      const on = v === s.amount;
+      return {
+        label: this.money(v, 0),
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ amount: v }),
+        style: 'height: 48px; border-radius: 10px; font-size: 15px; font-weight: 600; ' + (on ? 'background: #E3EFEB; color: #0B4A3F; border: 1px solid #0F5C4E; box-shadow: inset 0 0 0 1px #0F5C4E' : 'background: #FFFFFF; color: #15201C; border: 1px solid #C9D1CC')
+      };
+    });
+
+    const bankNames = ['RBC Royal Bank', 'TD Canada Trust', 'Scotiabank', 'BMO', 'CIBC', 'Desjardins', 'Tangerine', 'National Bank', 'Another bank or credit union'];
+    const q = s.q.trim().toLowerCase();
+    const banks = bankNames
+      .filter((n) => !q || n.toLowerCase().indexOf(q) !== -1 || n === 'Another bank or credit union')
+      .map((n, i) => ({
+        name: n,
+        pick: () => this.pickBank(n),
+        style: 'display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 58px; padding: 0 16px; background: #FFFFFF; border: 0; ' + (i > 0 ? 'border-top: 1px solid #E6EAE7; ' : '') + 'font-size: 15px; font-weight: 500; color: #15201C; text-align: left'
+      }));
+
+    const foundApproved = [
+      { label: 'Pay, typical month', value: '$4,120', note: 'Every 2 weeks from one employer. One short month in March.' },
+      { label: 'Rent', value: '$1,650', note: 'Paid on time 12 of 12 months' },
+      { label: 'Other regular bills', value: '$410', note: 'Phone, hydro, insurance, transit' },
+      { label: 'Left over each month', value: '$820', note: 'Average, after bills and spending' },
+      { label: 'Savings', value: '$4,620', note: 'About 1.4 months of expenses' },
+      { label: 'Overdrafts', value: '0', note: 'In the last 12 months' }
+    ];
+    const foundDeclined = [
+      { label: 'Pay, typical month', value: '$2,980', note: 'Varies a lot. Lowest month was $1,400.' },
+      { label: 'Rent', value: '$1,650', note: 'Paid late 4 of 12 months' },
+      { label: 'Other regular bills', value: '$520', note: 'Phone, hydro, insurance, transit' },
+      { label: 'Left over each month', value: '−$90', note: 'Average, after bills and spending' },
+      { label: 'Savings', value: '$310', note: 'Less than a week of expenses' },
+      { label: 'Overdrafts', value: '5', note: 'In the last 12 months' }
+    ];
+
+    const offer = Math.min(s.amount, 3000);
+    const pay = Math.round(this.pmt(offer, 0.249, 18) * 100) / 100;
+    const cost = pay * 18 - offer;
+    const termRows = [
+      ['Amount', this.money(offer, 0)],
+      ['Term', '18 months'],
+      ['Monthly payment', this.money(pay, 2)],
+      ['Interest rate', '24.9% APR'],
+      ['Total cost of borrowing', this.money(cost, 2)]
+    ];
+    const terms = termRows.map((t, i) => ({
+      label: t[0],
+      value: t[1],
+      style: 'display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 0; ' + (i > 0 ? 'border-top: 1px solid #E6EAE7' : '')
+    }));
+    const askLine = s.amount > offer
+      ? 'You asked for ' + this.money(s.amount, 0) + '. We’re starting at ' + this.money(offer, 0) + ', and after 6 on-time payments you can borrow up to $6,000.'
+      : 'After 6 on-time payments, you can borrow up to $6,000.';
+    const tagBase = 'flex: none; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; ';
+    const why = [
+      { tag: 'Helps', tagStyle: tagBase + 'background: #E3EFEB; color: #0B4A3F', text: 'Your pay arrived every two weeks for 11 of 12 months.' },
+      { tag: 'Helps', tagStyle: tagBase + 'background: #E3EFEB; color: #0B4A3F', text: 'You paid rent on time 12 of 12 months.' },
+      { tag: 'Holds back', tagStyle: tagBase + 'background: #FBEFD9; color: #7A4A06', text: 'Your savings cover about 1.4 months of expenses, so we’re starting smaller.' }
+    ];
+    const reasons = [
+      { n: '1', text: 'On average, about $90 more went out than came in each month.' },
+      { n: '2', text: 'Your account went into overdraft 5 times in the last 12 months.' },
+      { n: '3', text: 'Rent was paid late in 4 of the last 12 months.' }
+    ];
+    const fixes = [
+      { text: '3 months in a row with money left over after bills' },
+      { text: 'No overdrafts in that time' },
+      { text: 'Rent paid on time each month' }
+    ];
+
+    const manualOpts = [
+      { id: 'payroll', title: 'Connect your payroll account', desc: 'Pay and employer, straight from the source. Read-only.', note: 'Payroll data comes straight from the source, so it counts the same as bank data.' },
+      { id: 'upload', title: 'Upload bank statements', desc: 'Your last 3 months, as PDFs', note: 'Uploaded statements can’t be traced back to your bank, so a person checks them and they count for less.' },
+      { id: 'employer', title: 'Have your employer confirm', desc: 'We email them a short form', note: 'We’ll email your employer a short form. Once they reply, a person reviews it.' }
+    ];
+    const manual = manualOpts.map((m) => {
+      const on = s.manualChoice === m.id;
+      return {
+        title: m.title,
+        desc: m.desc,
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ manualChoice: m.id }),
+        dot: 'flex: none; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; ' + (on ? 'border: 6px solid #0F5C4E; background: #FFFFFF' : 'border: 1.5px solid #8A958F; background: #FFFFFF'),
+        style: 'display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left; border-radius: 12px; color: #15201C; ' + (on ? 'background: #EEF5F2; border: 1px solid #0F5C4E; box-shadow: inset 0 0 0 1px #0F5C4E' : 'background: #FFFFFF; border: 1px solid #DCE1DD')
+      };
+    });
+    const mSel = manualOpts.filter((m) => m.id === s.manualChoice)[0];
+
+    return {
+      isStart: s.step === 'start',
+      isAbout: s.step === 'about',
+      isConsent: s.step === 'consent',
+      isManual: s.step === 'manual',
+      isBank: s.step === 'bank',
+      isConnecting: s.step === 'connecting',
+      isFound: s.step === 'found',
+      isApproved: s.step === 'decision' && outcome === 'approved',
+      isDeclined: s.step === 'decision' && outcome === 'declined',
+      showBack: hasBack,
+      showProgressOnly: p > 0 && !hasBack,
+      segs: segs,
+      stepLabel: labels[p],
+      goBack: () => this.go(back[this.state.step] || 'start'),
+      amounts: amounts,
+      goAbout: () => this.go('about'),
+      name: s.name,
+      email: s.email,
+      phone: s.phone,
+      hasNameErr: s.nameErr,
+      onName: (e) => this.setState({ name: e.target.value, nameErr: false }),
+      onEmail: (e) => this.setState({ email: e.target.value }),
+      onPhone: (e) => this.setState({ phone: e.target.value }),
+      goConsent: () => {
+        if (!this.state.name.trim()) { this.setState({ nameErr: true }); return; }
+        this.go('consent');
+      },
+      goBank: () => this.go('bank'),
+      goManual: () => this.go('manual'),
+      q: s.q,
+      onQ: (e) => this.setState({ q: e.target.value }),
+      banks: banks,
+      bankName: s.bank || 'your bank',
+      found: outcome === 'declined' ? foundDeclined : foundApproved,
+      hasUpload: s.upload,
+      noUpload: !s.upload,
+      addUpload: () => this.setState({ upload: true }),
+      wrongOpen: s.wrongOpen,
+      wrong: s.wrong,
+      onWrong: (e) => this.setState({ wrong: e.target.value }),
+      toggleWrong: () => this.setState({ wrongOpen: !this.state.wrongOpen }),
+      wrongLabel: s.wrongOpen ? 'Hide note' : 'Something looks wrong',
+      submit: () => this.setState({ step: 'decision', accepted: false, reminded: false }),
+      offerLabel: this.money(offer, 0),
+      askLine: askLine,
+      terms: terms,
+      why: why,
+      accepted: s.accepted,
+      notAccepted: !s.accepted,
+      accept: () => this.setState({ accepted: true }),
+      reasons: reasons,
+      fixes: fixes,
+      reminded: s.reminded,
+      notReminded: !s.reminded,
+      remind: () => this.setState({ reminded: true }),
+      manual: manual,
+      manualPicked: !!mSel,
+      manualNote: mSel ? mSel.note : '',
+      restart: () => { clearTimeout(this.timer); this.setState(this.initial()); }
+    };
+  }
+}
+</script>
+</body>
+</html>

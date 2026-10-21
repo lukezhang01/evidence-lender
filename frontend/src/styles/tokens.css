@@ -1,0 +1,45 @@
+/*
+ * Design tokens from docs/HANDOFF.md section 6.
+ * Values marked "prototype" appear in docs/design/*.dc.html but not in the section 6 table.
+ */
+:root {
+  --color-ground: #f5f6f3; /* page background, inset panels */
+  --color-surface: #ffffff; /* cards */
+  --color-ink: #15201c; /* primary text */
+  --color-text-secondary: #4a5752; /* body copy */
+  --color-text-muted: #5f6b66; /* labels, provenance lines */
+  --color-border: #dce1dd; /* cards */
+  --color-divider: #e6eae7; /* row dividers */
+  --color-input-border: #c9d1cc; /* inputs, secondary buttons */
+  --color-accent: #0f5c4e; /* primary buttons, links, progress */
+  --color-accent-tint: #e3efeb; /* verified badges, "Helps" tags, selection */
+  --color-accent-tint-text: #0b4a3f;
+  --color-soft-accent: #eef5f2; /* "What we read", "What would change it" */
+  --color-warn-tint: #fbefd9; /* unverified, "Hurts", "Not yet" */
+  --color-warn-text: #7a4a06;
+  --color-neutral-tint: #eceeeb; /* neutral badges */
+  --color-neutral-text: #3e4a45;
+  --color-error: #a12c1f; /* validation messages */
+
+  --color-demo-pill: #e8ebe8; /* prototype: "Demo · sample data" */
+  --color-dashed-border: #b9c3bd; /* prototype: "Something we can't see?" */
+  --color-warn-border: #e5cfa3; /* prototype: "Not verified" card */
+  --color-radio-ring: #8a958f; /* prototype: unselected radio */
+
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-borrower-card: 16px;
+  --radius-lender-card: 14px;
+  --radius-button: 12px;
+  --radius-inset: 12px;
+  --radius-input: 10px; /* also list rows and the evidence record line */
+  --radius-mark: 8px; /* prototype: brand mark */
+  --radius-badge: 6px;
+  --radius-pill: 999px;
+
+  --control-min: 44px; /* nothing interactive is shorter */
+  --button-borrower: 52px;
+  --button-lender: 48px;
+  --input-height: 48px;
+}
