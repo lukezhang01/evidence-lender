@@ -1,14 +1,4 @@
-/* The experimental score card. Shares the evidence cards' layout (Evidence.module.css). */
-
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.body[hidden] {
-  display: none;
-}
+/* The credit score card. Shares the evidence cards’ layout (Evidence.module.css). */
 
 .scoreRow {
   display: flex;

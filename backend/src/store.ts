@@ -3,7 +3,6 @@ import type {
   Applicant,
   Application,
   BlindSpot,
-  BorrowerRequest,
   BorrowerView,
   ConfigResponse,
   Decision,
@@ -64,6 +63,7 @@ interface State {
 }
 
 const MAX_TEXT = 2000;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_TEXT) : '');
 const sha256 = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -110,7 +110,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     return { items, blindSpots, summary, statement };
   }
 
-  // Reviewer only; never part of a borrower response.
+  // Shown to the reviewer, and to the applicant once submitted.
   const scoreFor = (statement: ParsedStatement, summary: StatementSummary, sealedAt: string) =>
     experimentalScore(model, statement, { statementSha256: summary.fileSha256, computedAt: sealedAt });
 
@@ -138,8 +138,6 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
         status: decided.has(seed.id) ? 'decided' : 'ready',
         submittedAt: seed.submittedAt,
         statement: summary,
-        borrowerRequests: [],
-        ...(seed.borrowerNote ? { borrowerNote: seed.borrowerNote } : {}),
         evidenceRecordId: record.id,
       });
     }
@@ -173,37 +171,28 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
 
   function parseApplicant(body: Record<string, unknown>, fields: FieldErrors): Applicant {
     const a = isRecord(body.applicant) ? body.applicant : {};
-    const applicant = { legalName: text(a.legalName), email: text(a.email), phone: text(a.phone) };
+    const applicant = { legalName: text(a.legalName), email: text(a.email) };
     if (!applicant.legalName) fields.legalName = 'Enter your full legal name.';
+    if (!EMAIL.test(applicant.email)) fields.email = 'Enter your email address, like name@example.com.';
     return applicant;
   }
 
-  function parseRequestedAmount(body: Record<string, unknown>, fields: FieldErrors): number {
-    const amount = body.requestedAmount;
-    if (typeof amount !== 'number' || !config.borrower.amountOptions.includes(amount)) {
-      fields.requestedAmount = 'Choose one of the amounts shown.';
-      return 0;
-    }
-    return amount;
-  }
-
-  const rangeMessage = () => {
-    const { min, max } = config.pricing.reviewerAdjustRange;
-    return `Enter an amount between ${money.format(min)} and ${money.format(max)}.`;
+  const inRange = (amount: unknown): amount is number => {
+    const { min, max } = config.pricing.amountRange;
+    return typeof amount === 'number' && Number.isInteger(amount) && amount >= min && amount <= max;
   };
 
-  function addMonthsLocal(isoTime: string, months: number): string {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: config.timeZone,
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-    }).formatToParts(new Date(isoTime));
-    const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-    const target = new Date(Date.UTC(part('year'), part('month') - 1 + months, 1));
-    const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
-    target.setUTCDate(Math.min(part('day'), lastDay));
-    return target.toISOString().slice(0, 10);
+  const rangeMessage = () => {
+    const { min, max } = config.pricing.amountRange;
+    return `Enter a whole amount from ${money.format(min)} to ${money.format(max)}.`;
+  };
+
+  function parseRequestedAmount(body: Record<string, unknown>, fields: FieldErrors): number {
+    if (!inRange(body.requestedAmount)) {
+      fields.requestedAmount = rangeMessage();
+      return 0;
+    }
+    return body.requestedAmount;
   }
 
   // ---- borrower --------------------------------------------------------------
@@ -221,7 +210,6 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       applicant,
       requestedAmount,
       status: 'draft',
-      borrowerRequests: [],
     };
     state.applications.set(app.id, app);
     return app;
@@ -277,42 +265,23 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
       status: 'ready',
       submittedAt: sealedAt,
       evidenceRecordId: record.id,
-      ...(text(b.borrowerNote) ? { borrowerNote: text(b.borrowerNote) } : {}),
     } satisfies Partial<Application>);
-    return app;
-  }
-
-  function borrowerRequest(applicationId: string, body: unknown): Application {
-    const app = requireApplication(applicationId);
-    const kind = isRecord(body) ? body.kind : undefined;
-    const decision = listDecisions(app.id).at(-1);
-    const allowed: Record<BorrowerRequest['kind'], Decision['outcome']> = {
-      accept_offer: 'approved',
-      talk_first: 'approved',
-      recheck: 'declined',
-      human_review: 'declined',
-    };
-    if (typeof kind !== 'string' || !(kind in allowed)) throw new ApiProblem(422, 'Unknown request');
-    const k = kind as BorrowerRequest['kind'];
-    if (decision?.outcome !== allowed[k]) throw new ApiProblem(409, 'That isn’t available for this decision');
-    if (app.borrowerRequests.some((r) => r.kind === k)) return app;
-
-    const request: BorrowerRequest = { kind: k, requestedAt: now() };
-    if (k === 'recheck') request.recheckOn = addMonthsLocal(decision.decidedAt, config.borrower.recheckMonths);
-    app.borrowerRequests.push(request);
     return app;
   }
 
   function borrowerView(applicationId: string): BorrowerView {
     const app = requireApplication(applicationId);
+    const record = app.evidenceRecordId ? state.records.get(app.evidenceRecordId) : undefined;
+    if (!record) throw new Error(`Application ${app.id} has no sealed evidence record`);
+    const base = { application: app, score: record.experimentalScore };
     const decision = listDecisions(app.id).at(-1);
-    if (!decision) return { application: app, outcome: { kind: 'in_review' } };
+    if (!decision) return { ...base, outcome: { kind: 'in_review' } };
     if (decision.outcome === 'approved' && decision.offer) {
-      return { application: app, outcome: { kind: 'approved', offer: decision.offer } };
+      return { ...base, outcome: { kind: 'approved', offer: decision.offer } };
     }
     const reason = config.declineReasons.find((r) => r.id === decision.declineReasonId);
     return {
-      application: app,
+      ...base,
       outcome: {
         kind: 'declined',
         reasons: [reason?.label ?? decision.applicantReason ?? ''].filter(Boolean),
@@ -340,12 +309,9 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
 
     let terms: Pick<Decision, 'outcome' | 'offer' | 'applicantReason' | 'declineReasonId'>;
     if (b.outcome === 'approved') {
-      const { min, max } = config.pricing.reviewerAdjustRange;
       const amount = b.amount;
-      if (typeof amount !== 'number' || !Number.isInteger(amount) || amount < min || amount > max) {
-        fields.amount = rangeMessage();
-      }
-      terms = { outcome: 'approved', offer: fields.amount ? undefined : quote(amount as number, config.pricing) };
+      if (!inRange(amount)) fields.amount = rangeMessage();
+      terms = { outcome: 'approved', offer: inRange(amount) ? quote(amount, config.pricing) : undefined };
     } else if (b.outcome === 'declined') {
       const reason = config.declineReasons.find((r) => r.id === b.declineReasonId);
       if (!reason) fields.declineReasonId = 'Choose the reason the applicant will see.';
@@ -372,10 +338,7 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
 
   function quoteAmount(rawAmount: string | null): Offer {
     const amount = Number(rawAmount);
-    const { min, max } = config.pricing.reviewerAdjustRange;
-    if (!Number.isInteger(amount) || amount < min || amount > max) {
-      throw new ApiProblem(422, rangeMessage(), { amount: rangeMessage() });
-    }
+    if (!inRange(amount)) throw new ApiProblem(422, rangeMessage(), { amount: rangeMessage() });
     return quote(amount, config.pricing);
   }
 
@@ -398,7 +361,6 @@ export function createStore(config: ProductConfig, data: StoreData, options: Sto
     createApplication,
     uploadStatement,
     submit,
-    borrowerRequest,
     decide,
     reset() {
       state = load();

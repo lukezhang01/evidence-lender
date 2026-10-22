@@ -25,7 +25,6 @@ export const currentReviewerId = 'rv-001';
 export const sampleApplicant: Applicant = {
   legalName: 'Sam Rivera',
   email: 'sam.rivera@example.com',
-  phone: '(416) 555-0110',
 };
 
 // ---- sample statements -------------------------------------------------------
@@ -270,22 +269,20 @@ export interface ApplicationSeed {
   statementId: string;
   uploadedAt: string;
   submittedAt: string;
-  borrowerNote?: string;
 }
 
 export const applicationSeeds: ApplicationSeed[] = [
   {
     id: '4821',
-    applicant: { legalName: 'Jordan Lee', email: 'jordan.lee@example.com', phone: '(416) 555-0148' },
+    applicant: { legalName: 'Jordan Lee', email: 'jordan.lee@example.com' },
     requestedAmount: 4000,
     statementId: 'steady',
     uploadedAt: '2026-10-21T00:16:00Z',
     submittedAt: '2026-10-21T00:21:00Z',
-    borrowerNote: 'My July pay was lower because I took a week of unpaid leave.',
   },
   {
     id: '4817',
-    applicant: { legalName: 'Taylor Brooks', email: 'taylor.brooks@example.com', phone: '(647) 555-0127' },
+    applicant: { legalName: 'Taylor Brooks', email: 'taylor.brooks@example.com' },
     requestedAmount: 6000,
     statementId: 'semimonthly',
     uploadedAt: '2026-10-20T21:36:00Z',
@@ -293,16 +290,15 @@ export const applicationSeeds: ApplicationSeed[] = [
   },
   {
     id: '4815',
-    applicant: { legalName: 'Chris Nguyen', email: 'chris.nguyen@example.com', phone: '(905) 555-0164' },
+    applicant: { legalName: 'Chris Nguyen', email: 'chris.nguyen@example.com' },
     requestedAmount: 1000,
     statementId: 'tight',
     uploadedAt: '2026-10-20T18:06:00Z',
     submittedAt: '2026-10-20T18:10:00Z',
-    borrowerNote: 'The delivery app sometimes pays late, so rent goes out a few days late.',
   },
   {
     id: '4812',
-    applicant: { legalName: 'Morgan Diaz', email: 'morgan.diaz@example.com', phone: '(416) 555-0175' },
+    applicant: { legalName: 'Morgan Diaz', email: 'morgan.diaz@example.com' },
     requestedAmount: 3000,
     statementId: 'biweekly',
     uploadedAt: '2026-10-19T14:58:00Z',
@@ -319,7 +315,7 @@ export const decisions: DecisionFixture[] = [
     outcome: 'approved',
     amount: 3000,
     followedSuggestion: false,
-    overrideNote: 'Regular pay and rent every month, and the balance never went below zero. Starting at the starter limit.',
+    overrideNote: 'Regular pay and rent every month, and the balance never went below zero.',
     reviewerId: 'rv-002',
     decidedAt: '2026-10-19T19:30:00Z',
   },

@@ -3,7 +3,6 @@
 import type {
   ApiError,
   Application,
-  BorrowerRequest,
   BorrowerView,
   ConfigResponse,
   Decision,
@@ -86,12 +85,7 @@ export const createApplication = (body: { applicant: Application['applicant']; r
 export const uploadStatement = (id: string, body: StatementUpload) =>
   send<DraftEvidence>(app(id, '/statement'), body);
 
-export const submitApplication = (
-  id: string,
-  body: { applicant: Application['applicant']; requestedAmount: number; borrowerNote?: string },
-) => send<Application>(app(id, '/submit'), body);
+export const submitApplication = (id: string, body: { applicant: Application['applicant']; requestedAmount: number }) =>
+  send<Application>(app(id, '/submit'), body);
 
 export const recordDecision = (id: string, body: DecisionRequest) => send<Decision>(app(id, '/decisions'), body);
-
-export const sendBorrowerRequest = (id: string, kind: BorrowerRequest['kind']) =>
-  send<Application>(app(id, '/borrower-requests'), { kind });

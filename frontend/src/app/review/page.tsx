@@ -4,7 +4,7 @@ import styles from './review.module.css';
 export default function ReviewIndexPage() {
   return (
     <Card>
-      <p className={styles.hint}>Choose an application to see its evidence and the suggested decision.</p>
+      <p className={styles.hint}>Choose an application.</p>
     </Card>
   );
 }

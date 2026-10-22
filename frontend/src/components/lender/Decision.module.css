@@ -8,28 +8,10 @@
   gap: 18px;
 }
 
-.intro {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.eyebrow {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-muted);
-}
-
 .title {
   font-size: 22px;
   line-height: 1.25;
   font-weight: 600;
-}
-
-.summary {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
 }
 
 .rows {

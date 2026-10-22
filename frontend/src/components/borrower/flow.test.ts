@@ -1,54 +1,75 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { flowReducer, initialFlowState, type FlowEvent, type FlowState } from './flow.ts';
+import { flowReducer, initialFormState, parseAmount, validate, type FormEvent, type FormState } from './flow.ts';
 
-const start = () => initialFlowState({ amount: 4000, applicant: { legalName: '', email: '', phone: '' } });
-const run = (state: FlowState, ...events: FlowEvent[]) => events.reduce(flowReducer, state);
-const found = { statementLine: 's.csv', tiles: [], factsByCategory: [], factCount: 0, blindSpots: [] };
-const toStatement = (s: FlowState) =>
-  run(s, { type: 'start' }, { type: 'edit_applicant', field: 'legalName', value: 'Sam Rivera' }, { type: 'continue_about' });
+const run = (state: FormState, ...events: FormEvent[]) => events.reduce(flowReducer, state);
+const range = { min: 500, max: 6000, message: 'Enter a whole amount from $500 to $6,000.' };
+const filled = () =>
+  run(
+    initialFormState,
+    { type: 'edit', field: 'requestedAmount', value: '$2,750' },
+    { type: 'edit', field: 'legalName', value: 'Sam Rivera' },
+    { type: 'edit', field: 'email', value: 'sam@example.com' },
+    { type: 'file_chosen', fileName: 's.csv', csv: 'Date,Amount\n' },
+  );
 
-describe('borrower flow', () => {
-  it('requires a legal name before leaving "About you"', () => {
-    const s = run(start(), { type: 'start' }, { type: 'continue_about' });
-    assert.equal(s.step, 'about');
-    assert.equal(s.nameError, true);
-    const fixed = run(s, { type: 'edit_applicant', field: 'legalName', value: 'Sam Rivera' });
-    assert.equal(fixed.nameError, false);
-    assert.equal(flowReducer(fixed, { type: 'continue_about' }).step, 'statement');
+describe('borrower application form', () => {
+  it('reads typed amounts as whole numbers', () => {
+    assert.equal(parseAmount('$4,000'), 4000);
+    assert.equal(parseAmount(' 2750 '), 2750);
+    assert.equal(parseAmount('2750.50'), null);
+    assert.equal(parseAmount('four thousand'), null);
+    assert.equal(parseAmount(''), null);
   });
 
-  it('goes start → about → statement → found', () => {
-    const s = run(toStatement(run(start(), { type: 'pick_amount', amount: 2000 })), { type: 'upload_started' });
-    assert.equal(s.uploading, true);
-    const done = flowReducer(s, { type: 'uploaded', applicationId: '4822', found });
-    assert.equal(done.step, 'found');
-    assert.equal(done.amount, 2000);
-    assert.equal(done.applicationId, '4822');
+  it('asks for an amount in range, a name, an email and a statement', () => {
+    assert.deepEqual(Object.keys(validate(initialFormState, range)).sort(), [
+      'email',
+      'legalName',
+      'requestedAmount',
+      'statement',
+    ]);
+    assert.deepEqual(validate(filled(), range), {});
+    const tooMuch = run(filled(), { type: 'edit', field: 'requestedAmount', value: '6001' });
+    assert.equal(validate(tooMuch, range).requestedAmount, range.message);
+    const badEmail = run(filled(), { type: 'edit', field: 'email', value: 'sam@' });
+    assert.ok(validate(badEmail, range).email);
   });
 
-  it('stays on the upload step with the file’s problem when an upload fails', () => {
-    const s = run(toStatement(start()), { type: 'upload_started' }, { type: 'upload_failed', message: 'Row 2: bad date' });
-    assert.equal(s.step, 'statement');
-    assert.equal(s.uploading, false);
-    assert.equal(s.uploadError, 'Row 2: bad date');
-    const kept = run(s, { type: 'upload_started' }, { type: 'upload_failed', message: 'x', applicationId: '9' });
-    assert.equal(kept.applicationId, '9', 'a rejected file keeps the draft for the retry');
+  it('clears a field’s error when it changes', () => {
+    const s = run(initialFormState, { type: 'invalid', errors: validate(initialFormState, range) });
+    const fixed = run(s, { type: 'edit', field: 'legalName', value: 'Sam' }, { type: 'file_chosen', fileName: 'a.csv', csv: 'x' });
+    assert.equal(fixed.errors.legalName, undefined);
+    assert.equal(fixed.errors.statement, undefined);
+    assert.ok(fixed.errors.email);
   });
 
-  it('follows the Back map, keeps the application for a re-upload, and has no Back mid-upload', () => {
-    const atFound = run(toStatement(start()), { type: 'upload_started' }, { type: 'uploaded', applicationId: '7', found });
-    const back = flowReducer(atFound, { type: 'back' });
-    assert.equal(back.step, 'statement');
-    assert.equal(back.applicationId, '7');
-    const uploading = run(back, { type: 'upload_started' });
-    assert.equal(flowReducer(uploading, { type: 'back' }).step, 'statement');
+  it('drops a rejected file and says why', () => {
+    const s = run(filled(), { type: 'file_rejected', message: 'PDFs aren’t supported' });
+    assert.equal(s.file, null);
+    assert.equal(s.errors.statement, 'PDFs aren’t supported');
   });
 
-  it('ignores events that do not belong to the current step', () => {
-    const s = start();
-    assert.equal(flowReducer(s, { type: 'upload_started' }), s);
+  it('keeps the draft for a retry and shows the file’s problem by the file', () => {
+    const s = run(filled(), { type: 'submit_started' }, {
+      type: 'submit_failed',
+      message: 'Row 2: bad date',
+      fields: { statement: 'Row 2: bad date' },
+      applicationId: '4822',
+    });
+    assert.equal(s.submitting, false);
+    assert.equal(s.applicationId, '4822');
+    assert.equal(s.errors.statement, 'Row 2: bad date');
+    assert.equal(s.formError, null);
+    const again = run(s, { type: 'submit_started' }, { type: 'submit_failed', message: 'Gone', fields: {}, applicationId: null });
+    assert.equal(again.applicationId, '4822');
+    assert.equal(again.formError, 'Gone');
+  });
+
+  it('ignores edits and a second submit while submitting', () => {
+    const s = run(filled(), { type: 'submit_started' });
     assert.equal(flowReducer(s, { type: 'submit_started' }), s);
-    assert.equal(flowReducer(s, { type: 'uploaded', applicationId: '1', found }), s);
+    assert.equal(flowReducer(s, { type: 'edit', field: 'email', value: 'x' }), s);
+    assert.equal(flowReducer(s, { type: 'file_chosen', fileName: 'b.csv', csv: 'y' }), s);
   });
 });

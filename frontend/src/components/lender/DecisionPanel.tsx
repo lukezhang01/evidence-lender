@@ -8,8 +8,7 @@ import d from './Decision.module.css';
 
 interface DecisionPanelProps {
   applicationId: string;
-  requestedLabel: string;
-  // rangeLabel reads like "$500 and $6,000".
+  // rangeLabel reads like "$500 to $6,000".
   approve: { min: number; max: number; rangeLabel: string; initialAmount: number; initialPayment: string; termsLine: string };
   declineReasons: { id: string; label: string }[];
 }
@@ -22,9 +21,9 @@ const parseAmount = (v: string) => {
   return Number.isNaN(n) ? null : n;
 };
 
-// Nothing here is verified at source, so no suggestion is made (rule 2): the
+// Nothing here is verified at source, so no outcome is suggested (rule 2): the
 // reviewer decides and always writes why (rule 5). The backend checks the same.
-export function DecisionPanel({ applicationId, requestedLabel, approve, declineReasons }: DecisionPanelProps) {
+export function DecisionPanel({ applicationId, approve, declineReasons }: DecisionPanelProps) {
   const [mode, setMode] = useState<Mode>('idle');
   const [amount, setAmount] = useState(String(approve.initialAmount));
   const [payment, setPayment] = useState(approve.initialPayment);
@@ -65,7 +64,7 @@ export function DecisionPanel({ applicationId, requestedLabel, approve, declineR
     let request: DecisionRequest;
     if (mode === 'approve') {
       const n = parseAmount(amount);
-      if (!inRange(n)) fields.amount = `Enter an amount between ${approve.rangeLabel}.`;
+      if (!inRange(n)) fields.amount = `Enter a whole amount from ${approve.rangeLabel}.`;
       request = { outcome: 'approved', amount: n ?? 0, note };
     } else {
       if (!reasonId) fields.declineReasonId = 'Choose the reason the applicant will see.';
@@ -96,16 +95,9 @@ export function DecisionPanel({ applicationId, requestedLabel, approve, declineR
 
   return (
     <section className={d.panel} aria-labelledby="decision-heading">
-      <div className={d.intro}>
-        <span className={d.eyebrow}>Your decision</span>
-        <h2 id="decision-heading" className={d.title}>
-          No automated suggestion
-        </h2>
-        <span className={d.summary}>
-          Everything here comes from a statement the applicant uploaded, so nothing is verified at source. Read the
-          facts, then approve or decline. The applicant asked for {requestedLabel}.
-        </span>
-      </div>
+      <h2 id="decision-heading" className={d.title}>
+        Decision
+      </h2>
 
       {mode === 'idle' ? (
         <div className={d.pair}>
@@ -142,7 +134,7 @@ export function DecisionPanel({ applicationId, requestedLabel, approve, declineR
                 {...errorProps('amount')}
               />
               <span className={d.hint} aria-live="polite">
-                {`Between ${approve.rangeLabel}. ${approve.termsLine} Payment: ${payment} a month.`}
+                {`${approve.rangeLabel}. ${approve.termsLine} Payment: ${payment} a month.`}
               </span>
               {fieldError('amount')}
             </div>
@@ -190,7 +182,7 @@ export function DecisionPanel({ applicationId, requestedLabel, approve, declineR
               }}
               {...errorProps('note')}
             />
-            <span className={d.hint}>Required. Saved with the decision for audit.</span>
+            <span className={d.hint}>Required. Saved with the decision.</span>
             {fieldError('note')}
           </div>
 

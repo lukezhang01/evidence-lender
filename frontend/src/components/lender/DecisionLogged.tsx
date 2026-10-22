@@ -28,7 +28,7 @@ export function DecisionLogged({ title, rows }: DecisionLoggedProps) {
           </div>
         ))}
       </dl>
-      <span className={d.caption}>Logged decisions can’t be edited. A correction is logged as a new entry.</span>
+      <span className={d.caption}>Logged decisions can’t be edited.</span>
     </section>
   );
 }

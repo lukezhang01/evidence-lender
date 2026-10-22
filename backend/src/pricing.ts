@@ -15,6 +15,5 @@ export function quote(amount: number, pricing: ProductConfig['pricing']): Offer 
     apr: pricing.apr,
     monthlyPayment,
     totalCostOfBorrowing: roundCents(monthlyPayment * n - amount),
-    stepUp: { ...pricing.stepUp },
   };
 }
